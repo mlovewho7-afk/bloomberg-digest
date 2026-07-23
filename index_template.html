@@ -68,6 +68,19 @@
     text-decoration: none;
   }
   .detail-link:hover { text-decoration: underline; }
+  .detail-actions { display: flex; gap: 14px; margin-top: 20px; }
+  .summarize-btn {
+    background: none;
+    border: 1px solid #2a2f3a;
+    color: #8ab4f8;
+    font-size: 0.85rem;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .summarize-btn:hover { border-color: #8ab4f8; }
+  .summarize-hint { color: #6b7280; font-size: 0.8rem; margin-top: 8px; line-height: 1.5; }
   @media (max-width: 760px) {
     .layout { flex-direction: column; }
     .detail-pane { position: static; height: auto; width: 100%; border-left: none; border-top: 1px solid #1c212b; }
@@ -99,10 +112,22 @@ document.addEventListener('click', function (e) {
     '<div class="detail-tags">' + tags + '</div>' +
     '<h2 class="detail-title"></h2>' +
     '<p class="detail-summary"></p>' +
-    '<a class="detail-link" target="_blank" rel="noopener">원문 보기 →</a>';
+    '<div class="detail-actions">' +
+      '<a class="detail-link" target="_blank" rel="noopener">원문 보기 →</a>' +
+      '<button class="summarize-btn" type="button">요약하기</button>' +
+    '</div>' +
+    '<p class="summarize-hint">"요약하기"를 누르면 이 기사 링크가 복사됩니다. Claude와의 대화창에 붙여넣고 요약을 요청하세요 — 정적 홈페이지라 자동으로는 안 됩니다.</p>';
   pane.querySelector('.detail-title').textContent = link.textContent;
   pane.querySelector('.detail-summary').textContent = link.dataset.summary || '요약 없음';
   pane.querySelector('.detail-link').href = link.href;
+
+  pane.querySelector('.summarize-btn').addEventListener('click', function () {
+    var btn = this;
+    navigator.clipboard.writeText(link.href).then(function () {
+      btn.textContent = '복사됨!';
+      setTimeout(function () { btn.textContent = '요약하기'; }, 2000);
+    });
+  });
 });
 </script>
 </body>
