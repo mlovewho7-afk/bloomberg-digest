@@ -5,7 +5,6 @@
 고정 종료시각(예: 아침 7시)이 아니라 "지금(실행 시각)"까지로 잡는다 — 명시적으로 그렇게
 하기로 확정됨(2026-07-23).
 """
-import html
 import re
 import subprocess
 import urllib.parse
@@ -33,7 +32,10 @@ FEEDS = {
     "Economics": "https://feeds.bloomberg.com/economics/news.rss",
     "Markets": "https://feeds.bloomberg.com/markets/news.rss",
 }
-ECONOMICS_URL = "https://www.bloomberg.com/economics"
+WIDGET_PAGES = {
+    "EconomicsWidget": "https://www.bloomberg.com/economics",
+    "MarketsWidget": "https://www.bloomberg.com/markets",
+}
 BROWSER_PROFILE_DIR = ROOT / "data" / "browser_profile"
 RELATIVE_TIME_RE = re.compile(r"(\d+)\s*(min|mins|minute|minutes|hr|hrs|hour|hours)\s*ago", re.IGNORECASE)
 MAX_LOAD_MORE_CLICKS = 15
@@ -105,14 +107,71 @@ def parse_relative_time(text: str, scraped_at: datetime) -> datetime | None:
     return scraped_at - delta
 
 
-def scrape_economics_widget(window_start_kst: datetime) -> list[dict]:
-    """bloomberg.com/economics의 "More Economics News" 위젯을 실제 브라우저로 긁는다.
+def scrape_widget(page, page_url: str, source_name: str, window_start_kst: datetime) -> list[dict]:
+    """bloomberg.com/economics, /markets의 "More ... news" 위젯을 실제 브라우저로 긁는다.
+    두 페이지 모두 같은 위젯 구조(LineupContentArchive)를 쓴다(직접 확인, 2026-07-23).
     headless로는 PerimeterX(봇 차단, "px-captcha")에 막히지만 headed(화면 있는) 크롬은
-    통과하는 것을 확인했다(2026-07-23) — 그래서 headless=False로 고정한다. 이 위젯은
-    RSS에는 없는 newsletter/opinion/feature 콘텐츠까지 포함해 더 완전하다."""
-    BROWSER_PROFILE_DIR.parent.mkdir(parents=True, exist_ok=True)
+    통과하는 것을 확인했다 — 그래서 headless=False로 고정한다. 이 위젯은 RSS에는 없는
+    newsletter/opinion/feature 콘텐츠까지 포함해 더 완전하다."""
     items = []
     seen_hrefs = set()
+    page.goto(page_url, wait_until="domcontentloaded", timeout=30000)
+    page.wait_for_timeout(3000)
+
+    stall = 0
+    for _ in range(MAX_LOAD_MORE_CLICKS):
+        scraped_at = datetime.now(KST)
+        soup = BeautifulSoup(page.content(), "html.parser")
+        section = soup.find("section", class_="LineupContentArchive_LineupContentArchive__6yp9k")
+        if section is None:
+            print(f"[digest] {source_name} 위젯을 못 찾음 — 스크래핑 중단")
+            break
+
+        new_count = 0
+        oldest_pubdate = None
+        for c in section.find_all("div", class_="styles_itemContainer__t2ZQc"):
+            a = c.find("a", class_="styles_itemLink__VgyXJ")
+            time_el = c.find("time")
+            if a is None or time_el is None:
+                continue
+            href = urllib.parse.urljoin(page_url, a["href"])
+            pubdate_kst = parse_relative_time(time_el.get_text(strip=True), scraped_at)
+            if pubdate_kst is None:
+                continue
+            oldest_pubdate = pubdate_kst if oldest_pubdate is None else min(oldest_pubdate, pubdate_kst)
+            if href in seen_hrefs:
+                continue
+            seen_hrefs.add(href)
+            headline_el = a.find(attrs={"data-testid": "headline"})
+            title = headline_el.get_text(strip=True) if headline_el else a.get_text(strip=True)
+            eyebrow = a.find("div", class_=lambda cls: cls and "optionalEyebrow" in cls)
+            is_opinion = bool(eyebrow and "Opinion" in eyebrow.get_text())
+            summary_el = a.find(attrs={"data-component": "summary"})
+            summary = summary_el.get_text(strip=True) if summary_el else ""
+            items.append({
+                "title": title, "link": href, "pubdate_kst": pubdate_kst,
+                "source": source_name, "is_opinion": is_opinion, "summary": summary,
+            })
+            new_count += 1
+
+        stall = stall + 1 if new_count == 0 else 0
+        if stall >= STALL_LIMIT:
+            break
+        if oldest_pubdate is not None and oldest_pubdate < window_start_kst:
+            break
+
+        load_more = page.get_by_role("button", name="Load more")
+        if load_more.count() == 0:
+            break
+        load_more.first.click()
+        page.wait_for_timeout(1500)
+
+    return items
+
+
+def scrape_widgets(window_start_kst: datetime) -> list[dict]:
+    BROWSER_PROFILE_DIR.parent.mkdir(parents=True, exist_ok=True)
+    items = []
     with sync_playwright() as p:
         ctx = p.chromium.launch_persistent_context(
             str(BROWSER_PROFILE_DIR),
@@ -122,63 +181,14 @@ def scrape_economics_widget(window_start_kst: datetime) -> list[dict]:
             ignore_default_args=["--enable-automation"],
         )
         page = ctx.new_page()
-        page.goto(ECONOMICS_URL, wait_until="domcontentloaded", timeout=30000)
-        page.wait_for_timeout(3000)
-
-        stall = 0
-        for _ in range(MAX_LOAD_MORE_CLICKS):
-            scraped_at = datetime.now(KST)
-            soup = BeautifulSoup(page.content(), "html.parser")
-            section = soup.find("section", class_="LineupContentArchive_LineupContentArchive__6yp9k")
-            if section is None:
-                print("[digest] More Economics News 위젯을 못 찾음 — 스크래핑 중단")
-                break
-
-            new_count = 0
-            oldest_pubdate = None
-            for c in section.find_all("div", class_="styles_itemContainer__t2ZQc"):
-                a = c.find("a", class_="styles_itemLink__VgyXJ")
-                time_el = c.find("time")
-                if a is None or time_el is None:
-                    continue
-                href = urllib.parse.urljoin(ECONOMICS_URL, a["href"])
-                pubdate_kst = parse_relative_time(time_el.get_text(strip=True), scraped_at)
-                if pubdate_kst is None:
-                    continue
-                oldest_pubdate = pubdate_kst if oldest_pubdate is None else min(oldest_pubdate, pubdate_kst)
-                if href in seen_hrefs:
-                    continue
-                seen_hrefs.add(href)
-                headline_el = a.find(attrs={"data-testid": "headline"})
-                title = headline_el.get_text(strip=True) if headline_el else a.get_text(strip=True)
-                eyebrow = a.find("div", class_=lambda cls: cls and "optionalEyebrow" in cls)
-                is_opinion = bool(eyebrow and "Opinion" in eyebrow.get_text())
-                summary_el = a.find(attrs={"data-component": "summary"})
-                summary = summary_el.get_text(strip=True) if summary_el else ""
-                items.append({
-                    "title": title, "link": href, "pubdate_kst": pubdate_kst,
-                    "source": "EconomicsWidget", "is_opinion": is_opinion, "summary": summary,
-                })
-                new_count += 1
-
-            stall = stall + 1 if new_count == 0 else 0
-            if stall >= STALL_LIMIT:
-                break
-            if oldest_pubdate is not None and oldest_pubdate < window_start_kst:
-                break
-
-            load_more = page.get_by_role("button", name="Load more")
-            if load_more.count() == 0:
-                break
-            load_more.first.click()
-            page.wait_for_timeout(1500)
-
+        for source_name, page_url in WIDGET_PAGES.items():
+            items.extend(scrape_widget(page, page_url, source_name, window_start_kst))
         ctx.close()
     return items
 
 
 def collect_window(window_start_kst: datetime, window_end_kst: datetime) -> list[dict]:
-    items = scrape_economics_widget(window_start_kst)
+    items = scrape_widgets(window_start_kst)
     for name, url in FEEDS.items():
         items.extend(load_rss_items(fetch_feed(url), name))
 
@@ -215,14 +225,6 @@ def translate_items(items: list[dict]) -> None:
         except Exception as e:
             print(f"[digest] 번역 실패, 원문 유지: {e!r}")
             item["title_ko"] = item["title"]
-        if item["summary"]:
-            try:
-                item["summary_ko"] = translator.translate(item["summary"])
-            except Exception as e:
-                print(f"[digest] 요약 번역 실패, 원문 유지: {e!r}")
-                item["summary_ko"] = item["summary"]
-        else:
-            item["summary_ko"] = ""
 
 
 def render_obsidian_note(date_label: str, items: list[dict]) -> str:
@@ -245,12 +247,9 @@ def render_day_section_html(date_label: str, items: list[dict]) -> str:
     for it in items:
         stamp = it["pubdate_kst"].strftime("%m-%d %H:%M")
         tags = "".join(f'<span class="tag">{t}</span>' for t in it["tags"])
-        summary_attr = html.escape(it["summary_ko"] or "요약 없음", quote=True)
-        tags_attr = html.escape(",".join(it["tags"]), quote=True)
         rows.append(
             f'<li><span class="stamp">{stamp}</span>{tags}'
-            f'<a class="itemLink" href="{it["link"]}" rel="noopener" '
-            f'data-summary="{summary_attr}" data-tags="{tags_attr}">{it["title_ko"]}</a></li>'
+            f'<a href="{it["link"]}" target="_blank" rel="noopener">{it["title_ko"]}</a></li>'
         )
     return f'<section><h2>{date_label}</h2><ul>' + "\n".join(rows) + "</ul></section>"
 
