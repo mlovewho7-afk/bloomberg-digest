@@ -32,116 +32,93 @@
     font-size: 0.7rem;
     padding: 2px 6px;
     border-radius: 4px;
+    cursor: pointer;
   }
+  .tag:hover { background: #2a3550; }
+  .tag.active { background: #8ab4f8; color: #0b0e14; }
   a { color: #e6e6e6; text-decoration: none; flex: 1 1 auto; }
   a:hover { text-decoration: underline; color: #8ab4f8; }
+  #filterBar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    font-size: 0.85rem;
+    color: #6b7280;
+    min-height: 1.2em;
+  }
+  #resetFilter {
+    display: none;
+    background: none;
+    border: 1px solid #2a2f3a;
+    color: #8ab4f8;
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  #resetFilter:hover { border-color: #8ab4f8; }
 </style>
 </head>
 <body>
 <h1>Bloomberg 기사 요약</h1>
+<div id="filterBar">
+  <span id="filterStatus">태그를 클릭하면 그 주제만 모아 볼 수 있습니다.</span>
+  <button id="resetFilter" type="button">전체 보기</button>
+</div>
 <!-- SECTIONS -->
-<section><h2>2026-07-23</h2><ul><li><span class="stamp">07-22 18:24</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/eternal-profit-falls-short-on-tough-instant-delivery-competition" target="_blank" rel="noopener">빠른 상거래 성장으로 영구 수익이 두 배 이상 증가</a></li>
-<li><span class="stamp">07-22 18:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/retina-chip-designed-to-restore-sight-to-go-on-sale-in-europe" target="_blank" rel="noopener">시력 회복을 위한 레티나 칩, 유럽에서 판매 시작</a></li>
-<li><span class="stamp">07-22 18:24</span><span class="tag">US</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-22/us-voting-laws-deserve-better-than-the-save-act" target="_blank" rel="noopener">SAVE법은 잊어버리세요. 미국 투표법을 수정하는 더 나은 방법이 있습니다</a></li>
-<li><span class="stamp">07-22 18:24</span><span class="tag">China</span><span class="tag">MiddleEast</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/chinese-refiners-offer-some-middle-east-crude-as-prices-rebound" target="_blank" rel="noopener">중국 정유사, 가격 반등으로 중동산 원유 일부 제공</a></li>
-<li><span class="stamp">07-22 18:24</span><span class="tag">MiddleEast</span><span class="tag">Bonds</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/kuwait-set-to-issue-dollar-bonds-as-iran-strikes-batter-country" target="_blank" rel="noopener">쿠웨이트, 이란 공습에도 불구하고 60억 달러 채권 매도</a></li>
-<li><span class="stamp">07-22 18:24</span><span class="tag">Macro</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-22/the-world-s-dumbest-tariff-just-got-a-lot-dumber" target="_blank" rel="noopener">세계에서 가장 멍청한 관세가 너무 멍청해졌습니다</a></li>
-<li><span class="stamp">07-22 18:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/kalshi-moves-to-go-big-on-us-election-bets-ahead-of-midterms" target="_blank" rel="noopener">Kalshi는 중간고사를 앞두고 미국 선거에 크게 투자합니다</a></li>
-<li><span class="stamp">07-22 18:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/canada-presses-us-for-more-collaboration-to-combat-cyber-scams" target="_blank" rel="noopener">캐나다, 사이버 사기 퇴치를 위해 미국에 더 많은 협력을 촉구</a></li>
-<li><span class="stamp">07-22 18:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/indian-drugmakers-rattled-by-trump-s-100-levy-on-generic-drugs" target="_blank" rel="noopener">트럼프의 제네릭에 대한 100% 부과금에 인도 제약회사들이 동요했다</a></li>
-<li><span class="stamp">07-22 19:24</span><span class="tag">China</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/rubio-says-aiming-for-china-trade-investment-boards-by-xi-visit" target="_blank" rel="noopener">루비오, 중국 무역과 투자 위원회가 시 방문의 주목을 받고 있다고 말함</a></li>
-<li><span class="stamp">07-22 19:24</span><span class="tag">Macro</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/namibia-fuel-retailer-nasan-sees-oil-growth-after-vitol-deal" target="_blank" rel="noopener">나미비아 연료 소매업체 Nasan, Vitol 거래 후 석유 성장 확인</a></li>
-<li><span class="stamp">07-22 19:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/bae-launches-autonomous-combat-aircraft-program-for-uk-export" target="_blank" rel="noopener">BAE, 영국 수출을 위한 자율 전투 제트기 프로그램 출시</a></li>
-<li><span class="stamp">07-22 19:24</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/china-foreign-minister-gets-protest-from-manila-in-first-talks-since-2024" target="_blank" rel="noopener">중국 외교부 장관, 2024년 이후 첫 회담에서 마닐라로부터 항의 받아</a></li>
-<li><span class="stamp">07-22 19:24</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-22/social-security-reform-it-can-be-done-in-only-six-words" target="_blank" rel="noopener">여섯 단어로 사회보장 문제를 해결하는 방법</a></li>
-<li><span class="stamp">07-22 19:24</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/stumbling-stock-rally-looks-to-earnings-for-second-half-boost" target="_blank" rel="noopener">부진한 주식 랠리, 하반기 실적 부양 기대</a></li>
-<li><span class="stamp">07-22 19:24</span><span class="tag">China</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/china-s-tech-stock-rescue-expands-beijing-s-toolkit-be-says" target="_blank" rel="noopener">BE는 중국의 기술 재고 구제로 인해 베이징의 툴킷이 확장되었다고 밝혔습니다.</a></li>
-<li><span class="stamp">07-22 19:24</span><span class="tag">US</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-22/quashed-cleantech-opportunities-are-costing-us-billions" target="_blank" rel="noopener">폐기된 청정 기술 기회로 인해 수십억 달러의 비용이 발생하고 있습니다</a></li>
-<li><span class="stamp">07-22 19:24</span><span class="tag">Fed</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-22/federal-reserve-kevin-warsh-has-breathing-space-use-it-wisely" target="_blank" rel="noopener">Kevin Warsh는 현재로서는 호흡 공간이 있습니다.</a></li>
-<li><span class="stamp">07-22 20:24</span><span class="tag">Europe</span><span class="tag">Macro</span><span class="tag">Bonds</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/three-inflation-misses-bring-little-joy-to-bearish-gilt-traders" target="_blank" rel="noopener">Gilts는 석유 급등으로 인한 영국 인플레이션 하락에도 쉬지 않을 것입니다.</a></li>
-<li><span class="stamp">07-22 20:24</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/philip-morris-trims-profit-forecast-on-currencies-rising-costs" target="_blank" rel="noopener">필립 모리스, 연기 없는 제품에 대한 수요 급증 공유</a></li>
-<li><span class="stamp">07-22 20:24</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/nigeria-gasoline-imports-triple-as-dangote-refinery-exports-to-earn-dollars" target="_blank" rel="noopener">Dangote 정유소가 수출을 선호함에 따라 나이지리아 연료 수입 급증</a></li>
-<li><span class="stamp">07-22 20:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/bulgaria-allows-us-to-deploy-jets-to-support-mideast-operations" target="_blank" rel="noopener">불가리아, 미국이 중동 작전을 지원하기 위해 제트기 배치를 허용</a></li>
-<li><span class="stamp">07-22 20:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/spanish-auto-parts-maker-antolin-seeks-court-protection-in-us" target="_blank" rel="noopener">스페인 자동차 부품 제조업체 Antolin, 미국 법원 보호 승인</a></li>
-<li><span class="stamp">07-22 20:24</span><span class="tag">MiddleEast</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/turkey-rates-to-stay-put-as-middle-east-war-impedes-disinflation" target="_blank" rel="noopener">중동 전쟁이 디스인플레이션을 방해함에 따라 터키 금리는 그대로 유지될 것입니다.</a></li>
-<li><span class="stamp">07-22 20:24</span><span class="tag">MiddleEast</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/norsk-hydro-sees-aluminum-supply-risks-as-gulf-flows-deteriorate" target="_blank" rel="noopener">Norsk Hydro, 걸프만 흐름 악화로 인한 알루미늄 공급 위험 확인</a></li>
-<li><span class="stamp">07-22 20:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/burnham-s-uk-welfare-fix-may-require-spending-more-in-short-term" target="_blank" rel="noopener">Burnham의 영국 복지 문제로 인해 단기적으로 더 많은 지출이 발생할 위험이 있음</a></li>
-<li><span class="stamp">07-22 20:24</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/chile-plans-100-billion-copper-push-to-find-buyers-beyond-china" target="_blank" rel="noopener">칠레, 중국 이외의 구매자를 찾기 위해 1000억 달러 규모의 구리 투자 계획</a></li>
-<li><span class="stamp">07-22 21:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/burnham-raids-climate-aid-budget-to-pay-for-uk-bus-fare-cap" target="_blank" rel="noopener">Burnham은 영국 버스 요금 상한액을 지불하기 위해 기후 지원 예산을 강화했습니다.</a></li>
-<li><span class="stamp">07-22 21:24</span><span class="tag">Bonds</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/corpus-christi-drought-pushes-up-borrowing-costs-for-city-s-debt" target="_blank" rel="noopener">코퍼스 크리스티(Corpus Christi) 가뭄으로 인해 시 부채에 대한 차입 비용이 증가함</a></li>
-<li><span class="stamp">07-22 21:24</span><span class="tag">US</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/how-trump-and-putin-gave-britain-s-new-prime-minister-a-rude-awakening" target="_blank" rel="noopener">트럼프와 푸틴이 영국의 새 총리에게 무례한 깨우침을 준 방법</a></li>
-<li><span class="stamp">07-22 21:24</span><span class="tag">Europe</span><span class="tag">MiddleEast</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/uk-s-new-defense-boss-reinforces-criticism-of-israel-s-actions" target="_blank" rel="noopener">영국의 새로운 국방 책임자, 이스라엘의 행동에 대한 비판 강화</a></li>
-<li><span class="stamp">07-22 21:24</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/citadel-securities-opens-hub-for-equity-options-in-amsterdam" target="_blank" rel="noopener">Citadel Securities, 주식 옵션을 위한 암스테르담 허브 개설</a></li>
-<li><span class="stamp">07-22 21:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/graphics/2026-trump-policies-graduate-school-slump/" target="_blank" rel="noopener">트럼프의 대학원 부진</a></li>
-<li><span class="stamp">07-22 21:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/danish-energy-trader-opening-houston-office-to-grow-us-business" target="_blank" rel="noopener">덴마크 에너지 트레이더, 미국에서 성장하기 위해 휴스턴 사무소 개설</a></li>
-<li><span class="stamp">07-22 21:24</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/s-p-futures-fall-as-traders-brace-for-alphabet-tesla-earnings" target="_blank" rel="noopener">유가 상승으로 S&P 500 지수가 5일 만에 네 번째 하락</a></li>
-<li><span class="stamp">07-22 22:24</span><span class="tag">China</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/india-pushes-china-for-better-market-access-trade-balance" target="_blank" rel="noopener">인도, 더 나은 시장 접근과 무역 균형을 위해 중국을 압박</a></li>
-<li><span class="stamp">07-22 22:24</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/big-oil-set-to-reap-profit-bonanza-from-soaring-fuel-prices" target="_blank" rel="noopener">치솟는 연료 가격에서 대형 석유가 이익 보난자를 수확할 예정</a></li>
-<li><span class="stamp">07-22 22:24</span><span class="tag">US</span><span class="tag">Bonds</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/us-30-year-yield-raises-alarm-in-longest-run-above-5-since-2007" target="_blank" rel="noopener">미국 30년 국채 수익률은 2007년 이후 최장 5%를 넘어 경종을 울렸습니다.</a></li>
-<li><span class="stamp">07-22 22:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/uk-s-largest-onshore-wind-farm-set-to-get-even-bigger" target="_blank" rel="noopener">영국 최대 규모의 육상 풍력 발전 단지가 더욱 커질 예정</a></li>
-<li><span class="stamp">07-22 22:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/eu-backs-comporti-as-new-chair-of-beefed-up-markets-regulator" target="_blank" rel="noopener">EU, 강화된 시장 규제 기관의 새 의장으로 Comporti 지원</a></li>
-<li><span class="stamp">07-22 22:24</span><span class="tag">MiddleEast</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/dp-world-to-build-two-uae-container-terminals-outside-of-hormuz" target="_blank" rel="noopener">DP World, 호르무즈 외곽에 UAE 컨테이너 터미널 2개 건설 예정</a></li>
-<li><span class="stamp">07-22 22:24</span><span class="tag">Bonds</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/bny-pushes-toward-24-7-treasury-settlement-for-digital-assets" target="_blank" rel="noopener">BNY, 토큰화가 성장함에 따라 연중무휴 재무부 결제 추진</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/bad-loans-threaten-argentina-s-next-engine-of-economic-growth" target="_blank" rel="noopener">부실 대출이 아르헨티나의 차세대 경제성장 엔진을 위협하고 있습니다.</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/germany-opens-up-competition-for-autonomous-combat-plane-order" target="_blank" rel="noopener">독일, 자율전투기 주문 경쟁 시작</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">MiddleEast</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/israel-plans-crocodile-infested-moats-to-guard-hamas-prisoners" target="_blank" rel="noopener">이스라엘, 하마스 수감자들을 보호하기 위해 악어가 들끓는 해자 계획</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/nike-severs-chinese-distribution-deals-in-broad-strategic-shift" target="_blank" rel="noopener">나이키, 전략적 변화로 중국 유통 계약 중단</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">Bonds</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/national-football-league-raises-more-than-600m-in-private-debt" target="_blank" rel="noopener">NFL, 고급 사모 채권으로 6억 달러 이상 조달</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">US</span><span class="tag">MiddleEast</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/ghana-keeps-rates-at-14-as-us-iran-war-drives-inflation-risk" target="_blank" rel="noopener">가나는 미국-이란 전쟁으로 인해 인플레이션 위험이 높아지는 가운데 금리를 안정적으로 유지하고 있습니다.</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">Europe</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/easyjet-shares-slump-after-report-on-eu-ownership-rules-review" target="_blank" rel="noopener">EasyJet 주가는 EU 소유권 규칙 검토 보고서 이후 폭락했습니다.</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">Bonds</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/zambia-s-world-beating-36-local-bond-rally-to-extend-after-polls-citi-says" target="_blank" rel="noopener">잠비아의 세계 최고 수준인 36% 지역 채권 랠리가 여론조사 이후 연장될 것이라고 Citi가 밝혔습니다</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/trump-takes-another-swing-at-drug-industry-in-made-in-usa-push" target="_blank" rel="noopener">트럼프, Made in USA 추진으로 제약 산업에 또 다른 변화를 가져옴</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/revolut-confirms-115-billion-valuation-in-secondary-share-sale" target="_blank" rel="noopener">Revolut, 최근 주식 매각에서 1,150억 달러 가치 평가 확인</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">Bonds</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/coreweave-backed-data-center-plans-3-5-billion-junk-bond-sale" target="_blank" rel="noopener">갤럭시 디지털, 텍사스 데이터센터에 35억 달러 부채 요구</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/layoffs-may-be-worsening-the-gender-pay-gap-survey-finds" target="_blank" rel="noopener">여성은 해고 후 저임금 일자리를 가질 가능성이 더 높습니다</a></li>
-<li><span class="stamp">07-22 23:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/france-set-to-pay-a-record-9-75-billion-in-aid-to-renewables" target="_blank" rel="noopener">프랑스, 재생에너지에 대한 원조로 기록적인 97억 5천만 유로 지불 예정</a></li>
-<li><span class="stamp">07-23 00:24</span><span class="tag">US</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/chinese-autos-face-us-ban-under-bill-moved-by-senate-panel" target="_blank" rel="noopener">상원 패널이 의결한 법안에 따라 중국 자동차가 미국의 금지 조치에 직면</a></li>
-<li><span class="stamp">07-23 00:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/white-house-official-says-moonshot-accessed-banned-nvidia-chips" target="_blank" rel="noopener">미국 관계자는 Moonshot이 금지된 Nvidia 칩에 액세스했다고 밝혔습니다.</a></li>
-<li><span class="stamp">07-23 00:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/french-social-media-ban-kicks-off-wave-of-new-rules-in-the-eu" target="_blank" rel="noopener">프랑스의 소셜 미디어 금지로 인해 EU에서 새로운 규칙이 시작되었습니다.</a></li>
-<li><span class="stamp">07-23 00:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/ice-accelerates-immigration-arrests-across-us-to-1-400-a-day" target="_blank" rel="noopener">ICE, 미국 전역의 이민 체포 건수를 하루 1,400건으로 가속화</a></li>
-<li><span class="stamp">07-23 00:24</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-22/openai-s-hugging-face-breach-shows-ai-is-getting-too-hard-to-contain" target="_blank" rel="noopener">OpenAI의 포옹 얼굴 위반으로 AI가 억제하기가 너무 어려워지고 있음을 보여줍니다.</a></li>
-<li><span class="stamp">07-23 00:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/heat-and-war-deal-europe-s-grain-harvest-biggest-blow-in-decades" target="_blank" rel="noopener">열과 전쟁 거래, 유럽의 곡물 수확 수십 년 만에 가장 큰 타격</a></li>
-<li><span class="stamp">07-23 00:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/conservatives-urge-uk-tax-authorities-to-probe-farage-gift" target="_blank" rel="noopener">보수주의자들은 영국 세무당국에 Farage '선물' 조사를 촉구</a></li>
-<li><span class="stamp">07-23 00:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/wells-fargo-s-scharf-says-us-consumers-are-strong-though-nervous" target="_blank" rel="noopener">Wells Fargo의 Scharf는 미국 소비자가 불안하지만 강하다고 말합니다.</a></li>
-<li><span class="stamp">07-23 01:24</span><span class="tag">Japan</span><span class="tag">Bonds</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/japan-may-move-to-managing-yields-not-yen-deutsche-bank-says" target="_blank" rel="noopener">일본은 엔화가 아닌 수익률 관리로 전환할 수도 있다고 도이체방크가 밝혔습니다.</a></li>
-<li><span class="stamp">07-23 01:24</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/bofa-equities-traders-say-buy-momentum-stocks-eyeing-5-gain" target="_blank" rel="noopener">BofA 주식 거래자들은 5% 상승을 목표로 모멘텀 주식을 매수한다고 말합니다</a></li>
-<li><span class="stamp">07-23 01:24</span><span class="tag">Bonds</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/aston-martin-raises-550-million-new-debt-from-hps-to-boost-cash" target="_blank" rel="noopener">Aston Martin은 현금을 늘리기 위해 HPS에서 £550 Million의 부채를 조달합니다</a></li>
-<li><span class="stamp">07-23 02:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/dassault-talks-with-france-on-jet-alternative-after-airbus-flop" target="_blank" rel="noopener">Dassault, Airbus 실패 후 제트기 대안에 대해 프랑스와 대화</a></li>
-<li><span class="stamp">07-23 02:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/us-weighs-putting-nuclear-power-plants-in-ocean-waters" target="_blank" rel="noopener">미국, 해양에 원자력 발전소를 건설하는 것을 고려 중</a></li>
-<li><span class="stamp">07-23 02:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/us-goes-all-in-on-diesel-production-amid-growing-global-shortage" target="_blank" rel="noopener">미국은 글로벌 부족이 증가하는 가운데 디젤 생산에 올인</a></li>
-<li><span class="stamp">07-23 02:24</span><span class="tag">US</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/what-is-section-338-the-tool-trump-is-using-to-threaten-canada-with-50-tariffs" target="_blank" rel="noopener">트럼프가 50% 관세로 캐나다를 위협하기 위해 100년 된 법을 사용하는 이유</a></li>
-<li><span class="stamp">07-23 02:24</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/paramount-s-110-billion-warner-deal-gets-eu-conditional-approval" target="_blank" rel="noopener">파라마운트의 1,100억 달러 규모 워너 거래, EU 조건부 승인 획득</a></li>
-<li><span class="stamp">07-23 02:24</span><span class="tag">Fed</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/warsh-leaves-bond-traders-in-the-dark-on-next-week-s-rate-move" target="_blank" rel="noopener">Warsh는 거래자들을 혼란스럽게 하고 다음 주 금리 변동을 추측하게 만듭니다.</a></li>
-<li><span class="stamp">07-23 02:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/maduro-trial-date-set-for-june-2027-in-us-drug-trafficking-case" target="_blank" rel="noopener">미국 마약 밀매 사건에 대한 마두로 재판 날짜가 2027년 6월로 정해졌습니다</a></li>
-<li><span class="stamp">07-23 03:24</span><span class="tag">US</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/us-fuelmakers-tap-venezuela-oil-to-hedge-canada-wildfire-risk" target="_blank" rel="noopener">미국 연료 제조업체들은 캐나다 산불 위험을 방지하기 위해 베네수엘라 석유를 활용합니다.</a></li>
-<li><span class="stamp">07-23 03:24</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/tesla-stock-at-inflection-point-as-traders-seek-ai-credibility" target="_blank" rel="noopener">거래자들이 AI 신뢰성을 추구함에 따라 '변곡점'에 있는 Tesla 주식</a></li>
-<li><span class="stamp">07-23 03:24</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/venezuela-oil-batistas-fluxus-clinches-stake-in-pdvsa-joint-venture" target="_blank" rel="noopener">Batista Brothers, 거래가 활발해지면서 베네수엘라 석유 지분 확보</a></li>
-<li><span class="stamp">07-23 03:24</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-22/cxmt-s-10-billion-china-ipo-is-a-poisoned-chalice" target="_blank" rel="noopener">마이크론 라이벌의 100억 달러 IPO는 독이 든 성배다</a></li>
-<li><span class="stamp">07-23 04:24</span><span class="tag">Macro</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-22/the-ports-that-move-global-trade-are-going-electric" target="_blank" rel="noopener">세계 무역을 움직이는 항구가 전기화되고 ​​있습니다</a></li>
-<li><span class="stamp">07-23 05:24</span><span class="tag">US</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/us-house-votes-to-restrict-congressional-stock-purchases" target="_blank" rel="noopener">미국 하원, 의회 주식 매입 제한 법안 통과</a></li>
-<li><span class="stamp">07-23 05:24</span><span class="tag">US</span><span class="tag">MiddleEast</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/trump-signs-nuclear-sharing-deal-with-saudi-arabia-in-policy-shift" target="_blank" rel="noopener">트럼프, 정책 변화로 사우디아라비아와 핵 공유 계약 체결</a></li>
-<li><span class="stamp">07-23 05:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/democrats-threaten-yale-with-tax-if-school-makes-deal-with-trump" target="_blank" rel="noopener">민주당은 학교가 트럼프와 거래하면 세금으로 예일을 위협</a></li>
-<li><span class="stamp">07-23 05:24</span><span class="tag">Bonds</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/cable-one-faces-12-yield-to-fund-buyout-after-debt-swap-stalls" target="_blank" rel="noopener">케이블 원, 부채 교환 중단 후 자금 매입 수익률 12% 직면</a></li>
-<li><span class="stamp">07-23 05:24</span><span class="tag">Japan</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-22/japan-s-wedding-gifts-are-leaving-couples-deflated" target="_blank" rel="noopener">일본의 결혼 선물로 인해 커플의 기분이 나빠지고 있습니다</a></li>
-<li><span class="stamp">07-23 05:24</span><span class="tag">US</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/brazil-unveils-new-relief-for-companies-hit-by-us-tariffs" target="_blank" rel="noopener">브라질, 미국 관세로 타격을 입은 기업에 대한 새로운 구제책 발표</a></li>
-<li><span class="stamp">07-23 06:24</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/brent-crude-spikes-in-late-trading-after-red-sea-tanker-attack" target="_blank" rel="noopener">홍해 유조선 공격 이후 거래 후반에 브렌트유 급등</a></li>
-<li><span class="stamp">07-23 06:24</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/ford-and-geely-agree-to-share-underused-spanish-auto-factory" target="_blank" rel="noopener">Ford와 Geely는 잘 사용되지 않는 스페인 자동차 공장을 공유하기로 합의했습니다.</a></li>
-<li><span class="stamp">07-23 06:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/tether-benefited-as-howard-lutnick-bo-hines-shaped-first-crypto-law" target="_blank" rel="noopener">트럼프 내부자들이 암호화폐 법 제정에 도움을 준 후 테더는 이점을 보았습니다.</a></li>
-<li><span class="stamp">07-23 06:24</span><span class="tag">US</span><a href="https://www.bloomberg.com/features/2026-howard-lutnick-bo-hines-trump-tether-crypto-law/" target="_blank" rel="noopener">트럼프 내부자가 미국 최초의 암호화폐 법을 형성하면서 테더가 어떻게 이익을 얻었는가</a></li>
-<li><span class="stamp">07-23 06:24</span><span class="tag">US</span><span class="tag">MiddleEast</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/house-backs-trump-iran-war-budget-despite-midterm-election-fears" target="_blank" rel="noopener">하원, 중간선거 우려에도 불구하고 트럼프 이란 전쟁예산 지지</a></li>
-<li><span class="stamp">07-23 07:24</span><span class="tag">US</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/amazon-investigated-over-chinese-influence-by-us-senate-panel" target="_blank" rel="noopener">아마존, 미 상원 패널로부터 중국 영향력 조사</a></li>
-<li><span class="stamp">07-23 07:24</span><span class="tag">Stocks</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/stock-market-today-dow-s-p-live-updates" target="_blank" rel="noopener">칩 제조업체의 이익, 석유 상승으로 아시아 주식 상승</a></li>
-<li><span class="stamp">07-23 07:24</span><span class="tag">MiddleEast</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/latest-oil-market-news-and-analysis-for-july-23" target="_blank" rel="noopener">후티 반군, 홍해에서 사우디 유조선 2척을 공격한 후 오일 점프</a></li>
-<li><span class="stamp">07-23 07:24</span><span class="tag">Korea</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/samsung-s-400-000-bonus-fuels-labor-disputes-across-south-korea" target="_blank" rel="noopener">삼성의 40만 달러 보너스, 한국 전역의 노동 분쟁 촉발</a></li>
-<li><span class="stamp">07-23 08:24</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/uber-cuts-10-of-customer-service-jobs-citing-embrace-of-ai" target="_blank" rel="noopener">우버, AI '포용' 이유로 고객 서비스 인력 10% 감축</a></li>
-<li><span class="stamp">07-23 08:24</span><span class="tag">Macro</span><span class="tag">Gold</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/gold-holds-gain-as-dip-buying-counters-inflation-fears-from-war" target="_blank" rel="noopener">전쟁으로 인한 인플레이션 우려에 하락 매수가 대응하면서 금은 이익을 유지합니다.</a></li>
-<li><span class="stamp">07-23 08:24</span><span class="tag">Korea</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/south-korea-s-economy-beats-estimates-as-chip-boom-continues" target="_blank" rel="noopener">칩 붐이 지속되면서 한국 경제가 예상치를 상회했습니다.</a></li>
-<li><span class="stamp">07-23 08:24</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/hong-kong-s-offshore-yuan-market-evolves-into-global-funding-hub" target="_blank" rel="noopener">홍콩 역외 위안화 시장, 글로벌 펀딩 허브로 진화</a></li>
-<li><span class="stamp">07-23 09:24</span><span class="tag">Japan</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/yen-s-slump-in-trade-weighted-gauge-shows-its-broad-based-drop" target="_blank" rel="noopener">무역 가중 게이지의 엔화 폭락으로 광범위한 하락세 확인</a></li>
-<li><span class="stamp">07-23 09:24</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/china-s-psibot-becomes-latest-ai-startup-to-hit-1-billion-value" target="_blank" rel="noopener">중국의 Psibot, 10억 달러 규모의 최신 AI 스타트업으로 성장</a></li>
-<li><span class="stamp">07-23 09:24</span><span class="tag">US</span><span class="tag">Fed</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/trump-allies-eye-svb-review-as-new-path-to-oust-a-fed-governor" target="_blank" rel="noopener">트럼프 동맹국, SVB 검토를 연준 총재 축출의 새로운 길로 주목</a></li>
-<li><span class="stamp">07-23 09:24</span><span class="tag">China</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/china-s-high-profile-funds-ditch-consumer-stocks-to-chase-ai" target="_blank" rel="noopener">중국 유명 펀드, AI 추격 위해 소비재 주식 포기</a></li>
-<li><span class="stamp">07-23 10:34</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/australian-jobs-soar-76-300-in-june-unemployment-holds-at-4-4" target="_blank" rel="noopener">호주 6월 일자리 76,300개 급증해 금리인상 기대 커져</a></li>
-<li><span class="stamp">07-23 10:52</span><span class="tag">US</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/tsmc-supplier-lcy-says-kkr-will-exit-allowing-faster-us-growth" target="_blank" rel="noopener">TSMC 공급업체 LCY, KKR이 종료되어 미국 성장이 더 빨라질 것이라고 밝혔습니다.</a></li></ul></section>
+<section><h2>2026-07-23</h2><ul><li><span class="stamp">07-23 10:10</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/australian-jobs-soar-76-300-in-june-unemployment-holds-at-4-4" target="_blank" rel="noopener">6월 호주 고용 급증, 금리인상 기대 강화</a></li>
+<li><span class="stamp">07-23 11:10</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/asian-chip-stocks-climb-as-alphabet-spending-revives-ai-momentum" target="_blank" rel="noopener">알파벳 지출로 AI 모멘텀이 부활하면서 아시아 칩 주가 상승</a></li>
+<li><span class="stamp">07-23 11:10</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/china-aims-to-boost-renewable-energy-consumption-53-by-2030" target="_blank" rel="noopener">중국, 2030년까지 재생에너지 소비량 53% 늘리는 목표</a></li>
+<li><span class="stamp">07-23 11:10</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/china-hints-at-regulations-on-quants-ai-usage-in-state-paper" target="_blank" rel="noopener">중국, 국정 보고서에서 퀀트, AI 사용에 대한 규제 암시</a></li>
+<li><span class="stamp">07-23 11:10</span><span class="tag">Japan</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/tokyo-wards-used-condo-prices-drop-for-first-time-in-26-months" target="_blank" rel="noopener">도쿄 중고콘도 가격 2년 만에 처음으로 하락</a></li>
+<li><span class="stamp">07-23 11:10</span><span class="tag">US</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/tsmc-supplier-lcy-says-kkr-will-exit-allowing-faster-us-growth" target="_blank" rel="noopener">TSMC 공급업체 LCY, KKR이 종료되어 미국 성장이 더 빨라질 것이라고 밝혔습니다.</a></li>
+<li><span class="stamp">07-23 12:10</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-23/ai-riches-can-supplant-crypto-to-fill-the-luxury-gap" target="_blank" rel="noopener">AI 부자는 암호화폐를 대체하여 사치품 격차를 메울 수 있습니다</a></li>
+<li><span class="stamp">07-23 12:10</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-23/beyond-bitcoin-bankers-are-doing-grown-up-stuff-with-blockchain-now" target="_blank" rel="noopener">은행가들은 이제 암호화폐로 성숙한 일을 하고 있습니다</a></li>
+<li><span class="stamp">07-23 12:10</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/indonesian-stocks-set-for-bull-market-as-sentiment-improves" target="_blank" rel="noopener">인도네시아 주식, 6월 저점 대비 20% 상승, 강세장 시작</a></li>
+<li><span class="stamp">07-23 12:10</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/china-s-solar-plunge-is-return-to-rationalization-lobby-says" target="_blank" rel="noopener">China Solar Lobby, 설치 감소로 지속 가능한 변화 확인</a></li>
+<li><span class="stamp">07-23 12:44</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/australia-brands-chinese-missile-test-provocative-destabilizing" target="_blank" rel="noopener">호주, 중국 미사일 시험을 도발적이고 불안정하게 브랜드화</a></li>
+<li><span class="stamp">07-23 12:59</span><span class="tag">China</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/china-s-semight-is-said-to-mull-hong-kong-listing-after-2-200-stock-rise" target="_blank" rel="noopener">중국의 셈마이트는 주가 2,200% 상승 후 홍콩 상장을 고민할 것이라고 합니다</a></li>
+<li><span class="stamp">07-23 13:00</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-23/london-homeowners-will-sweat-on-burnham-s-land-tax-plans" target="_blank" rel="noopener">런던 주택 소유자들은 Burnham의 토지세 계획에 대해 땀을 흘릴 것입니다</a></li>
+<li><span class="stamp">07-23 13:00</span><span class="tag">Europe</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/gen-z-is-losing-confidence-in-the-uk-economy" target="_blank" rel="noopener">Z세대는 영국 경제에 대한 신뢰를 잃고 있습니다.</a></li>
+<li><span class="stamp">07-23 13:00</span><span class="tag">Europe</span><span class="tag">Opinion</span><a href="https://www.bloomberg.com/opinion/articles/2026-07-23/louise-haigh-britain-s-most-powerful-woman-is-wielding-the-ax" target="_blank" rel="noopener">영국에서 가장 강력한 여성이 도끼를 휘두르고 있다</a></li></ul></section>
+<script>
+document.addEventListener('click', function (e) {
+  var tag = e.target.closest('.tag');
+  if (tag) {
+    filterByTag(tag.textContent);
+    return;
+  }
+  if (e.target.closest('#resetFilter')) {
+    showAll();
+  }
+});
+
+function filterByTag(tagName) {
+  document.querySelectorAll('.tag').forEach(function (t) {
+    t.classList.toggle('active', t.textContent === tagName);
+  });
+  document.querySelectorAll('section').forEach(function (section) {
+    var visibleCount = 0;
+    section.querySelectorAll('li').forEach(function (li) {
+      var tags = Array.from(li.querySelectorAll('.tag')).map(function (t) { return t.textContent; });
+      var match = tags.indexOf(tagName) !== -1;
+      li.style.display = match ? '' : 'none';
+      if (match) visibleCount++;
+    });
+    section.style.display = visibleCount > 0 ? '' : 'none';
+  });
+  document.getElementById('filterStatus').textContent = '"' + tagName + '" 태그만 보는 중';
+  document.getElementById('resetFilter').style.display = 'inline-block';
+}
+
+function showAll() {
+  document.querySelectorAll('.tag').forEach(function (t) { t.classList.remove('active'); });
+  document.querySelectorAll('li, section').forEach(function (el) { el.style.display = ''; });
+  document.getElementById('filterStatus').textContent = '태그를 클릭하면 그 주제만 모아 볼 수 있습니다.';
+  document.getElementById('resetFilter').style.display = 'none';
+}
+</script>
 </body>
 </html>
