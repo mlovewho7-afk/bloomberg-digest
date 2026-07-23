@@ -14,6 +14,7 @@ import json
 import re
 import subprocess
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -29,6 +30,7 @@ VAULT_DIR = Path(
 STORIES_API = "https://www.bloomberg.com/lineup-next/api/stories"
 STORIES_API_QUERY = "types=ARTICLE,FEATURE,INTERACTIVE,LETTER,EXPLAINERS&locale=en&limit=25"
 MAX_PAGES = 40
+STORE_PATH = ROOT / "data" / "collected_items.json"
 
 # "Won"은 "Won't"의 일부와 겹쳐 오탐이 났던 전례가 있어 뺐다(2026-07-23 확인).
 KEYWORDS = {
@@ -63,11 +65,27 @@ def matched_tags(title: str) -> list[str]:
     return [tag for tag, pat in PATTERNS.items() if pat.search(title)]
 
 
+RETRY_WAITS_SECONDS = (10, 30, 60)
+
+
 def fetch_stories_page(page_number: int) -> list[dict]:
+    """이 API는 요청이 몰리면 403을 준다(직접 확인, 2026-07-23) — 사람이 잠깐 다시
+    시도하면 보통 풀리는 수준이라 짧게 대기하며 재시도한다."""
     url = f"{STORIES_API}?{STORIES_API_QUERY}&pageNumber={page_number}"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        return json.loads(resp.read())
+    last_error = None
+    for attempt, wait_seconds in enumerate((0,) + RETRY_WAITS_SECONDS):
+        if wait_seconds:
+            print(f"[digest] API 403 — {wait_seconds}초 대기 후 재시도")
+            time.sleep(wait_seconds)
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                return json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            if e.code != 403:
+                raise
+            last_error = e
+    raise last_error
 
 
 def scrape_latest(window_start_kst: datetime) -> list[dict]:
@@ -187,25 +205,58 @@ def push_homepage(date_label: str) -> None:
     run(["git", "push"])
 
 
+def load_store() -> dict:
+    if STORE_PATH.exists():
+        return json.loads(STORE_PATH.read_text(encoding="utf-8"))
+    return {}
+
+
+def save_store(store: dict) -> None:
+    STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    STORE_PATH.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def main() -> None:
+    """실행마다 새로 가져온 기사를 그날 누적분에 링크 기준으로 합친다(덮어쓰지 않음) —
+    블룸버그 쪽 차단/요청제한으로 이번 조회가 이전보다 적게 잡혀도 예전에 이미 확보한
+    기사가 사라지지 않는다(2026-07-23, 사용자 지적으로 도입)."""
     now_kst = datetime.now(KST)
     window_end_kst = now_kst
     window_start_kst = (now_kst - timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
     date_label = now_kst.date().isoformat()
 
     print(f"[digest] 창: {window_start_kst} ~ {window_end_kst}")
-    items = collect_window(window_start_kst, window_end_kst)
-    print(f"[digest] {len(items)}건 매칭")
-    if not items:
-        print("[digest] 매칭 항목 없음 — 종료")
+    new_items = collect_window(window_start_kst, window_end_kst)
+    print(f"[digest] 이번 조회 {len(new_items)}건")
+
+    store = load_store()
+    day_store = store.get(date_label, {})
+    added = 0
+    for item in new_items:
+        if item["link"] not in day_store:
+            day_store[item["link"]] = {**item, "pubdate_kst": item["pubdate_kst"].isoformat()}
+            added += 1
+    print(f"[digest] 신규 {added}건 추가, 누적 {len(day_store)}건")
+
+    if not day_store:
+        print("[digest] 누적 항목 없음 — 종료")
         return
 
-    translate_items(items)
-    note = render_obsidian_note(date_label, items)
+    to_translate = [v for v in day_store.values() if "title_ko" not in v]
+    if to_translate:
+        translate_items(to_translate)
+
+    store[date_label] = day_store
+    save_store(store)
+
+    all_items = [{**v, "pubdate_kst": datetime.fromisoformat(v["pubdate_kst"])} for v in day_store.values()]
+    all_items.sort(key=lambda x: x["pubdate_kst"])
+
+    note = render_obsidian_note(date_label, all_items)
     obsidian_path = save_to_obsidian(date_label, note)
     print(f"[digest] 옵시디언 저장: {obsidian_path}")
 
-    update_homepage(date_label, items)
+    update_homepage(date_label, all_items)
     push_homepage(date_label)
     print("[digest] 완료")
 
