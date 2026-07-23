@@ -6,34 +6,13 @@
 <title>Bloomberg 기사 요약</title>
 <style>
   :root { color-scheme: dark; }
-  * { box-sizing: border-box; }
   body {
     background: #0b0e14;
     color: #e6e6e6;
     font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
-    margin: 0;
-  }
-  .layout {
-    display: flex;
-    max-width: 1200px;
+    max-width: 760px;
     margin: 0 auto;
-    align-items: flex-start;
-  }
-  .list-pane {
-    flex: 1 1 60%;
-    min-width: 0;
     padding: 24px 16px 60px;
-  }
-  .detail-pane {
-    flex: 1 1 40%;
-    min-width: 280px;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-    padding: 24px 20px 60px;
-    border-left: 1px solid #1c212b;
-    background: #0e121a;
   }
   h1 { font-size: 1.3rem; border-bottom: 1px solid #2a2f3a; padding-bottom: 12px; }
   h2 { font-size: 1rem; color: #8ab4f8; margin-top: 32px; }
@@ -54,74 +33,30 @@
     padding: 2px 6px;
     border-radius: 4px;
   }
-  a.itemLink { color: #e6e6e6; text-decoration: none; flex: 1 1 auto; cursor: pointer; }
-  a.itemLink:hover, a.itemLink.active { text-decoration: underline; color: #8ab4f8; }
-  .detail-placeholder { color: #6b7280; font-size: 0.9rem; }
-  .detail-tags { margin-bottom: 8px; }
-  .detail-pane h2.detail-title { color: #e6e6e6; font-size: 1.05rem; margin: 8px 0 16px; }
-  .detail-summary { line-height: 1.6; font-size: 0.92rem; color: #cbd2dc; white-space: pre-wrap; }
-  .detail-link {
-    display: inline-block;
-    margin-top: 20px;
-    color: #8ab4f8;
-    font-size: 0.85rem;
-    text-decoration: none;
-  }
-  .detail-link:hover { text-decoration: underline; }
-  @media (max-width: 760px) {
-    .layout { flex-direction: column; }
-    .detail-pane { position: static; height: auto; width: 100%; border-left: none; border-top: 1px solid #1c212b; }
-  }
+  a { color: #e6e6e6; text-decoration: none; flex: 1 1 auto; }
+  a:hover { text-decoration: underline; color: #8ab4f8; }
 </style>
 </head>
 <body>
-<div class="layout">
-<main class="list-pane">
 <h1>Bloomberg 기사 요약</h1>
 <!-- SECTIONS -->
-<section><h2>2026-07-23</h2><ul><li><span class="stamp">07-22 19:07</span><span class="tag">China</span><span class="tag">Stocks</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/china-s-tech-stock-rescue-expands-beijing-s-toolkit-be-says" rel="noopener" data-summary="Bloomberg Economics에 따르면, 기술 주도 주식 매도를 중단하기 위한 중국의 신속한 개입은 자본 시장 안정화가 베이징의 경제 정책 툴킷에서 더욱 중요한 부분이 되고 있다는 신호입니다." data-tags="China,Stocks">BE는 중국의 기술 재고 구제로 인해 베이징의 툴킷이 확장되었다고 밝혔습니다.</a></li>
-<li><span class="stamp">07-22 19:51</span><span class="tag">China</span><span class="tag">Macro</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/rubio-says-aiming-for-china-trade-investment-boards-by-xi-visit" rel="noopener" data-summary="마르코 루비오 미 국무장관은 9월 시진핑 국가주석의 방문을 앞두고 미국과 중국이 양국 간 투자 및 무역을 위한 위원회를 설립하는 방향으로 움직이고 있다고 말했습니다." data-tags="China,Macro">루비오, 중국 무역과 투자 위원회가 시 방문의 주목을 받고 있다고 말함</a></li>
-<li><span class="stamp">07-22 20:09</span><span class="tag">MiddleEast</span><span class="tag">Macro</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/turkey-rates-to-stay-put-as-middle-east-war-impedes-disinflation" rel="noopener" data-summary="터키 중앙은행은 중동의 긴장 고조로 인한 에너지 가격 상승이 인플레이션 둔화를 위협함에 따라 금리 동결을 연장할 태세를 갖추고 있습니다." data-tags="MiddleEast,Macro">중동 전쟁이 디스인플레이션을 방해함에 따라 터키 금리는 그대로 유지될 것입니다.</a></li>
-<li><span class="stamp">07-22 20:40</span><span class="tag">Europe</span><span class="tag">Macro</span><span class="tag">Bonds</span><span class="tag">Oil</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/three-inflation-misses-bring-little-joy-to-bearish-gilt-traders" rel="noopener" data-summary="세 차례 연속 인플레이션 하락과 2020년 이후 가장 느린 민간 부문 임금 상승률을 기록했습니다. 이는 영란은행이 금리 인하를 기대하고 있다는 점을 투자자들에게 납득시키기에 충분할 것입니다." data-tags="Europe,Macro,Bonds,Oil">Gilts는 석유 급등으로 인한 영국 인플레이션 하락에도 쉬지 않을 것입니다.</a></li>
-<li><span class="stamp">07-22 23:19</span><span class="tag">US</span><span class="tag">MiddleEast</span><span class="tag">Macro</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/ghana-keeps-rates-at-14-as-us-iran-war-drives-inflation-risk" rel="noopener" data-summary="가나 중앙은행은 미국과 이란 간의 새로운 적대 행위로 인해 새로운 인플레이션 위험이 발생함에 따라 더 오랫동안 금리를 더 높게 유지하는 점점 더 많은 중앙 은행에 합류했습니다." data-tags="US,MiddleEast,Macro">가나는 미국-이란 전쟁으로 인해 인플레이션 위험이 높아짐에 따라 금리를 14%로 유지합니다.</a></li>
-<li><span class="stamp">07-22 23:45</span><span class="tag">Macro</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/bad-loans-threaten-argentina-s-next-engine-of-economic-growth" rel="noopener" data-summary="아르헨티나에는 부실 대출이 계속 쌓이고 있으며, 하비에르 밀레이 대통령의 가혹한 긴축 프로그램으로 인해 촉발된 경제적 고통이 이미 정점에 이르렀다는 희망이 무너지고 있습니다." data-tags="Macro">부실 대출이 아르헨티나의 차세대 경제성장 엔진을 위협하고 있습니다.</a></li>
-<li><span class="stamp">07-23 02:35</span><span class="tag">US</span><span class="tag">Macro</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/what-is-section-338-the-tool-trump-is-using-to-threaten-canada-with-50-tariffs" rel="noopener" data-summary="도널드 트럼프 미국 대통령은 대공황 당시 의회가 관세를 창설한 이후 사용되지 않았던 관세권을 손에 넣고 있다. 대법원이 2차 무역 의제를 진전시키기 위해 비상권한법 사용을 무효화한 후 트럼프는 1930년 관세법 338항을 근거로 캐나다로부터의 특정 수입품에 대해 50% 관세를 부과하겠다고 위협하고 있습니다. 그는 이번 조치는 캐나다가 미국산 유제품, 술, 자동차를 부당하게 대우하고 있는 것에 대한 대응이라고 말했습니다." data-tags="US,Macro">섹션 338이란 무엇입니까? 트럼프가 50% 관세로 캐나다를 위협하기 위해 사용하는 도구</a></li>
-<li><span class="stamp">07-23 05:22</span><span class="tag">US</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/democrats-threaten-yale-with-tax-if-school-makes-deal-with-trump" rel="noopener" data-summary="예일대에서 학위를 취득한 코네티컷의 민주당 의원 그룹은 지도자들이 입학 관행에 대한 조사를 위해 트럼프 행정부와 거래를 할 경우 학교의 면세 자격을 위협하고 있습니다." data-tags="US">민주당은 학교가 트럼프와 거래하면 세금으로 예일을 위협</a></li>
-<li><span class="stamp">07-23 05:30</span><span class="tag">Macro</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/mexico-city-pozole-chain-casa-de-tono-explores-sale-on-expansion-pitch" rel="noopener" data-summary="멕시코 가족 소유 레스토랑 체인인 라 카사 데 토뇨(La Casa de Toño)는 최대 4억 달러 규모의 매각을 모색하고 있으며 사업 확장을 준비하고 있다고 이 문제에 정통한 소식통이 말했습니다." data-tags="Macro">멕시코 시티의 Casa de Toño 레스토랑 체인, 판매 및 성장 모색</a></li>
-<li><span class="stamp">07-23 06:48</span><span class="tag">Oil</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/brent-crude-spikes-in-late-trading-after-red-sea-tanker-attack" rel="noopener" data-summary="예멘의 이란 지원을 받는 후티 반군이 사우디 유조선 2척을 공격했다고 발표한 이후 브렌트유가 배럴당 95달러 가까이 상승하는 등 수요일 결제 후 거래에서 유가가 급등했습니다." data-tags="Oil">홍해 유조선 공격 이후 거래 후반에 브렌트유 급등</a></li>
-<li><span class="stamp">07-23 07:00</span><span class="tag">Stocks</span><span class="tag">Oil</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/stock-market-today-dow-s-p-live-updates?srnd=phx-economics-v2" rel="noopener" data-summary="요약 없음" data-tags="Stocks,Oil">칩 제조업체의 이익, 석유 상승으로 아시아 주식 상승</a></li>
-<li><span class="stamp">07-23 07:02</span><span class="tag">Oil</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/latest-oil-market-news-and-analysis-for-july-23" rel="noopener" data-summary="이란의 지원을 받는 후티 반군이 홍해에서 사우디아라비아 유조선 2척을 공격해 중동 갈등을 고조시키고 공급 중단을 더욱 심화시킬 것이라고 발표한 후 유가는 상승세를 이어갔습니다." data-tags="Oil">7월 23일 최신 석유 시장 뉴스 및 분석</a></li>
-<li><span class="stamp">07-23 08:00</span><span class="tag">Korea</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/south-korea-s-economy-beats-estimates-as-chip-boom-continues?srnd=phx-economics-v2" rel="noopener" data-summary="요약 없음" data-tags="Korea">칩 붐이 지속되면서 한국 경제가 예상치를 상회했습니다.</a></li>
-<li><span class="stamp">07-23 08:00</span><span class="tag">China</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/hong-kong-s-offshore-yuan-market-evolves-into-global-funding-hub?srnd=phx-economics-v2" rel="noopener" data-summary="요약 없음" data-tags="China">홍콩 역외 위안화 시장, 글로벌 펀딩 허브로 진화</a></li>
-<li><span class="stamp">07-23 09:00</span><span class="tag">US</span><span class="tag">Fed</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/trump-allies-eye-svb-review-as-new-path-to-oust-a-fed-governor?srnd=phx-economics-v2" rel="noopener" data-summary="요약 없음" data-tags="US,Fed">트럼프 동맹국, SVB 검토를 연준 총재 축출의 새로운 길로 주목</a></li>
-<li><span class="stamp">07-23 09:00</span><span class="tag">China</span><span class="tag">Stocks</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/china-s-high-profile-funds-ditch-consumer-stocks-to-chase-ai?srnd=phx-economics-v2" rel="noopener" data-summary="요약 없음" data-tags="China,Stocks">중국 유명 펀드, AI 추격 위해 소비재 주식 포기</a></li>
-<li><span class="stamp">07-23 09:00</span><span class="tag">Macro</span><span class="tag">Gold</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-22/gold-holds-gain-as-dip-buying-counters-inflation-fears-from-war?srnd=phx-economics-v2" rel="noopener" data-summary="요약 없음" data-tags="Macro,Gold">전쟁으로 인한 인플레이션 우려에 하락 매수가 대응하면서 금은 이익을 유지합니다.</a></li>
-<li><span class="stamp">07-23 10:00</span><span class="tag">Japan</span><span class="tag">Macro</span><a class="itemLink" href="https://www.bloomberg.com/news/articles/2026-07-23/yen-s-slump-in-trade-weighted-gauge-shows-its-broad-based-drop?srnd=phx-economics-v2" rel="noopener" data-summary="요약 없음" data-tags="Japan,Macro">무역 가중 게이지의 엔화 폭락으로 광범위한 하락세 확인</a></li></ul></section>
-</main>
-<aside class="detail-pane" id="detailPane">
-<p class="detail-placeholder">왼쪽에서 기사를 클릭하면 여기에 요약이 표시됩니다.</p>
-</aside>
-</div>
-<script>
-document.addEventListener('click', function (e) {
-  var link = e.target.closest('.itemLink');
-  if (!link) return;
-  e.preventDefault();
-  document.querySelectorAll('.itemLink.active').forEach(function (el) { el.classList.remove('active'); });
-  link.classList.add('active');
-
-  var tags = (link.dataset.tags || '').split(',').filter(Boolean)
-    .map(function (t) { return '<span class="tag">' + t + '</span>'; }).join('');
-  var pane = document.getElementById('detailPane');
-  pane.innerHTML =
-    '<div class="detail-tags">' + tags + '</div>' +
-    '<h2 class="detail-title"></h2>' +
-    '<p class="detail-summary"></p>' +
-    '<a class="detail-link" target="_blank" rel="noopener">원문 보기 →</a>';
-  pane.querySelector('.detail-title').textContent = link.textContent;
-  pane.querySelector('.detail-summary').textContent = link.dataset.summary || '요약 없음';
-  pane.querySelector('.detail-link').href = link.href;
-});
-</script>
+<section><h2>2026-07-23</h2><ul><li><span class="stamp">07-22 19:07</span><span class="tag">China</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/china-s-tech-stock-rescue-expands-beijing-s-toolkit-be-says" target="_blank" rel="noopener">BE는 중국의 기술 재고 구제로 인해 베이징의 툴킷이 확장되었다고 밝혔습니다.</a></li>
+<li><span class="stamp">07-22 19:51</span><span class="tag">China</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/rubio-says-aiming-for-china-trade-investment-boards-by-xi-visit" target="_blank" rel="noopener">루비오, 중국 무역과 투자 위원회가 시 방문의 주목을 받고 있다고 말함</a></li>
+<li><span class="stamp">07-22 20:09</span><span class="tag">MiddleEast</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/turkey-rates-to-stay-put-as-middle-east-war-impedes-disinflation" target="_blank" rel="noopener">중동 전쟁이 디스인플레이션을 방해함에 따라 터키 금리는 그대로 유지될 것입니다.</a></li>
+<li><span class="stamp">07-22 20:40</span><span class="tag">Europe</span><span class="tag">Macro</span><span class="tag">Bonds</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/three-inflation-misses-bring-little-joy-to-bearish-gilt-traders" target="_blank" rel="noopener">Gilts는 석유 급등으로 인한 영국 인플레이션 하락에도 쉬지 않을 것입니다.</a></li>
+<li><span class="stamp">07-22 23:19</span><span class="tag">US</span><span class="tag">MiddleEast</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/ghana-keeps-rates-at-14-as-us-iran-war-drives-inflation-risk" target="_blank" rel="noopener">가나는 미국-이란 전쟁으로 인해 인플레이션 위험이 높아짐에 따라 금리를 14%로 유지합니다.</a></li>
+<li><span class="stamp">07-22 23:45</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/bad-loans-threaten-argentina-s-next-engine-of-economic-growth" target="_blank" rel="noopener">부실 대출이 아르헨티나의 차세대 경제성장 엔진을 위협하고 있습니다.</a></li>
+<li><span class="stamp">07-23 02:35</span><span class="tag">US</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/what-is-section-338-the-tool-trump-is-using-to-threaten-canada-with-50-tariffs" target="_blank" rel="noopener">섹션 338이란 무엇입니까? 트럼프가 50% 관세로 캐나다를 위협하기 위해 사용하는 도구</a></li>
+<li><span class="stamp">07-23 05:22</span><span class="tag">US</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/democrats-threaten-yale-with-tax-if-school-makes-deal-with-trump" target="_blank" rel="noopener">민주당은 학교가 트럼프와 거래하면 세금으로 예일을 위협</a></li>
+<li><span class="stamp">07-23 05:30</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/mexico-city-pozole-chain-casa-de-tono-explores-sale-on-expansion-pitch" target="_blank" rel="noopener">멕시코 시티의 Casa de Toño 레스토랑 체인, 판매 및 성장 모색</a></li>
+<li><span class="stamp">07-23 06:48</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/brent-crude-spikes-in-late-trading-after-red-sea-tanker-attack" target="_blank" rel="noopener">홍해 유조선 공격 이후 거래 후반에 브렌트유 급등</a></li>
+<li><span class="stamp">07-23 07:02</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/latest-oil-market-news-and-analysis-for-july-23" target="_blank" rel="noopener">7월 23일 최신 석유 시장 뉴스 및 분석</a></li>
+<li><span class="stamp">07-23 07:02</span><span class="tag">Stocks</span><span class="tag">Oil</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/stock-market-today-dow-s-p-live-updates?srnd=phx-economics-v2" target="_blank" rel="noopener">칩 제조업체의 이익, 석유 상승으로 아시아 주식 상승</a></li>
+<li><span class="stamp">07-23 08:02</span><span class="tag">Korea</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/south-korea-s-economy-beats-estimates-as-chip-boom-continues?srnd=phx-economics-v2" target="_blank" rel="noopener">칩 붐이 지속되면서 한국 경제가 예상치를 상회했습니다.</a></li>
+<li><span class="stamp">07-23 08:02</span><span class="tag">China</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/hong-kong-s-offshore-yuan-market-evolves-into-global-funding-hub?srnd=phx-economics-v2" target="_blank" rel="noopener">홍콩 역외 위안화 시장, 글로벌 펀딩 허브로 진화</a></li>
+<li><span class="stamp">07-23 09:02</span><span class="tag">US</span><span class="tag">Fed</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/trump-allies-eye-svb-review-as-new-path-to-oust-a-fed-governor?srnd=phx-economics-v2" target="_blank" rel="noopener">트럼프 동맹국, SVB 검토를 연준 총재 축출의 새로운 길로 주목</a></li>
+<li><span class="stamp">07-23 09:02</span><span class="tag">China</span><span class="tag">Stocks</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/china-s-high-profile-funds-ditch-consumer-stocks-to-chase-ai?srnd=phx-economics-v2" target="_blank" rel="noopener">중국 유명 펀드, AI 추격 위해 소비재 주식 포기</a></li>
+<li><span class="stamp">07-23 09:02</span><span class="tag">Macro</span><span class="tag">Gold</span><a href="https://www.bloomberg.com/news/articles/2026-07-22/gold-holds-gain-as-dip-buying-counters-inflation-fears-from-war?srnd=phx-economics-v2" target="_blank" rel="noopener">전쟁으로 인한 인플레이션 우려에 하락 매수가 대응하면서 금은 이익을 유지합니다.</a></li>
+<li><span class="stamp">07-23 10:02</span><span class="tag">Japan</span><span class="tag">Macro</span><a href="https://www.bloomberg.com/news/articles/2026-07-23/yen-s-slump-in-trade-weighted-gauge-shows-its-broad-based-drop?srnd=phx-economics-v2" target="_blank" rel="noopener">무역 가중 게이지의 엔화 폭락으로 광범위한 하락세 확인</a></li></ul></section>
 </body>
 </html>
