@@ -1,22 +1,24 @@
-"""Bloomberg Economics+Markets RSS를 받아 관심 주제(미국/중국/일본/한국/유럽/중동리스크/
-매크로/채권/주식)로 필터링하고 한글로 번역해 옵시디언 노트 + 홈페이지(index.html)에 반영한다.
+"""bloomberg.com/latest가 내부적으로 쓰는 공개 API(lineup-next/api/stories)를 직접
+호출해 관심 주제(미국/중국/일본/한국/유럽/중동리스크/매크로/채권/주식/원유/금/연준/
+오피니언)로 필터링하고 한글로 번역해 옵시디언 노트 + 홈페이지(index.html)에 반영한다.
 
 자동 스케줄 없음 — 사용자가 "지금 업데이트 해줘"라고 할 때만 수동 실행한다. 그때는 창을
 고정 종료시각(예: 아침 7시)이 아니라 "지금(실행 시각)"까지로 잡는다 — 명시적으로 그렇게
 하기로 확정됨(2026-07-23).
+
+이 API는 로그인·브라우저 없이 plain HTTP로도 열람 가능하고(PerimeterX 안 걸림, 2026-07-23
+확인) ISO 발행시각을 정확히 준다 — 그래서 이전의 Playwright 기반 DOM 스크래핑(위젯
+"Load more" 버튼 클릭 방식, RSS 등)을 전부 버리고 이 API 하나로 통합했다.
 """
+import json
 import re
 import subprocess
-import urllib.parse
+import time
 import urllib.request
-import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
-from email.utils import parsedate_to_datetime
 from pathlib import Path
 
-from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
-from playwright.sync_api import sync_playwright
 
 KST = timezone(timedelta(hours=9))
 ROOT = Path(__file__).parent
@@ -24,22 +26,9 @@ VAULT_DIR = Path(
     "/Users/sunggeunmoon/Library/Mobile Documents/iCloud~md~obsidian/Documents"
     "/Moon/02.Finance/000.블룸버그기사"
 )
-FEEDS = {
-    # scrape_economics_widget()이 opinion/newsletter까지 더 폭넓게 잡지만, 위젯 자체가
-    # "Load more"로 되돌아갈 수 있는 과거 범위가 RSS보다 짧아서(직접 확인, 2026-07-23)
-    # Economics RSS를 빼면 오히려 이른 시간대 기사가 통째로 누락된다. 그래서 스크래핑은
-    # 추가 소스로만 쓰고 RSS 둘 다 유지 — 링크 기준으로 중복 제거.
-    "Economics": "https://feeds.bloomberg.com/economics/news.rss",
-    "Markets": "https://feeds.bloomberg.com/markets/news.rss",
-}
-WIDGET_PAGES = {
-    "EconomicsWidget": "https://www.bloomberg.com/economics",
-    "MarketsWidget": "https://www.bloomberg.com/markets",
-}
-BROWSER_PROFILE_DIR = ROOT / "data" / "browser_profile"
-RELATIVE_TIME_RE = re.compile(r"(\d+)\s*(min|mins|minute|minutes|hr|hrs|hour|hours)\s*ago", re.IGNORECASE)
-MAX_LOAD_MORE_CLICKS = 15
-STALL_LIMIT = 3
+STORIES_API = "https://www.bloomberg.com/lineup-next/api/stories"
+STORIES_API_QUERY = "types=ARTICLE,FEATURE,INTERACTIVE,LETTER,EXPLAINERS&locale=en&limit=25"
+MAX_PAGES = 40
 
 # "Won"은 "Won't"의 일부와 겹쳐 오탐이 났던 전례가 있어 뺐다(2026-07-23 확인).
 KEYWORDS = {
@@ -74,136 +63,40 @@ def matched_tags(title: str) -> list[str]:
     return [tag for tag, pat in PATTERNS.items() if pat.search(title)]
 
 
-def fetch_feed(url: str) -> bytes:
+def fetch_stories_page(page_number: int) -> list[dict]:
+    url = f"{STORIES_API}?{STORIES_API_QUERY}&pageNumber={page_number}"
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=15) as resp:
-        return resp.read()
+        return json.loads(resp.read())
 
 
-def load_rss_items(xml_bytes: bytes, source_name: str) -> list[dict]:
-    tree = ET.fromstring(xml_bytes)
-    out = []
-    for it in tree.findall(".//item"):
-        title = it.find("title").text
-        link = it.find("link").text
-        pubdate_kst = parsedate_to_datetime(it.find("pubDate").text).astimezone(KST)
-        desc_el = it.find("description")
-        summary = (desc_el.text or "").strip() if desc_el is not None else ""
-        out.append({"title": title, "link": link, "pubdate_kst": pubdate_kst,
-                     "source": source_name, "is_opinion": False, "summary": summary})
-    return out
-
-
-def parse_relative_time(text: str, scraped_at: datetime) -> datetime | None:
-    text = text.strip()
-    if text.lower() in ("just now", "now"):
-        return scraped_at
-    m = RELATIVE_TIME_RE.search(text)
-    if not m:
-        return None
-    n = int(m.group(1))
-    unit = m.group(2).lower()
-    delta = timedelta(hours=n) if unit.startswith(("hr", "hour")) else timedelta(minutes=n)
-    return scraped_at - delta
-
-
-def scrape_widget(page, page_url: str, source_name: str, window_start_kst: datetime) -> list[dict]:
-    """bloomberg.com/economics, /markets의 "More ... news" 위젯을 실제 브라우저로 긁는다.
-    두 페이지 모두 같은 위젯 구조(LineupContentArchive)를 쓴다(직접 확인, 2026-07-23).
-    headless로는 PerimeterX(봇 차단, "px-captcha")에 막히지만 headed(화면 있는) 크롬은
-    통과하는 것을 확인했다 — 그래서 headless=False로 고정한다. 이 위젯은 RSS에는 없는
-    newsletter/opinion/feature 콘텐츠까지 포함해 더 완전하다."""
+def scrape_latest(window_start_kst: datetime) -> list[dict]:
     items = []
-    seen_hrefs = set()
-    page.goto(page_url, wait_until="domcontentloaded", timeout=30000)
-    page.wait_for_timeout(3000)
-
-    stall = 0
-    for _ in range(MAX_LOAD_MORE_CLICKS):
-        scraped_at = datetime.now(KST)
-        soup = BeautifulSoup(page.content(), "html.parser")
-        section = soup.find("section", class_="LineupContentArchive_LineupContentArchive__6yp9k")
-        if section is None:
-            print(f"[digest] {source_name} 위젯을 못 찾음 — 스크래핑 중단")
+    for page_number in range(1, MAX_PAGES + 1):
+        if page_number > 1:
+            time.sleep(1.5)
+        stories = fetch_stories_page(page_number)
+        if not stories:
             break
-
-        new_count = 0
         oldest_pubdate = None
-        for c in section.find_all("div", class_="styles_itemContainer__t2ZQc"):
-            a = c.find("a", class_="styles_itemLink__VgyXJ")
-            time_el = c.find("time")
-            if a is None or time_el is None:
-                continue
-            href = urllib.parse.urljoin(page_url, a["href"])
-            pubdate_kst = parse_relative_time(time_el.get_text(strip=True), scraped_at)
-            if pubdate_kst is None:
-                continue
+        for s in stories:
+            pubdate_kst = datetime.fromisoformat(s["publishedAt"].replace("Z", "+00:00")).astimezone(KST)
             oldest_pubdate = pubdate_kst if oldest_pubdate is None else min(oldest_pubdate, pubdate_kst)
-            if href in seen_hrefs:
-                continue
-            seen_hrefs.add(href)
-            headline_el = a.find(attrs={"data-testid": "headline"})
-            title = headline_el.get_text(strip=True) if headline_el else a.get_text(strip=True)
-            eyebrow = a.find("div", class_=lambda cls: cls and "optionalEyebrow" in cls)
-            is_opinion = bool(eyebrow and "Opinion" in eyebrow.get_text())
-            summary_el = a.find(attrs={"data-component": "summary"})
-            summary = summary_el.get_text(strip=True) if summary_el else ""
+            link = "https://www.bloomberg.com" + s["url"]
             items.append({
-                "title": title, "link": href, "pubdate_kst": pubdate_kst,
-                "source": source_name, "is_opinion": is_opinion, "summary": summary,
+                "title": s["headline"], "link": link, "pubdate_kst": pubdate_kst,
+                "is_opinion": "/opinion/" in s["url"],
             })
-            new_count += 1
-
-        stall = stall + 1 if new_count == 0 else 0
-        if stall >= STALL_LIMIT:
-            break
         if oldest_pubdate is not None and oldest_pubdate < window_start_kst:
             break
-
-        load_more = page.get_by_role("button", name="Load more")
-        if load_more.count() == 0:
-            break
-        load_more.first.click()
-        page.wait_for_timeout(1500)
-
-    return items
-
-
-def scrape_widgets(window_start_kst: datetime) -> list[dict]:
-    BROWSER_PROFILE_DIR.parent.mkdir(parents=True, exist_ok=True)
-    items = []
-    with sync_playwright() as p:
-        ctx = p.chromium.launch_persistent_context(
-            str(BROWSER_PROFILE_DIR),
-            headless=False,
-            channel="chrome",
-            args=["--disable-blink-features=AutomationControlled"],
-            ignore_default_args=["--enable-automation"],
-        )
-        page = ctx.new_page()
-        for source_name, page_url in WIDGET_PAGES.items():
-            items.extend(scrape_widget(page, page_url, source_name, window_start_kst))
-        ctx.close()
     return items
 
 
 def collect_window(window_start_kst: datetime, window_end_kst: datetime) -> list[dict]:
-    items = scrape_widgets(window_start_kst)
-    for name, url in FEEDS.items():
-        items.extend(load_rss_items(fetch_feed(url), name))
-
-    # 같은 기사가 스크래핑과 RSS 양쪽에 잡힐 수 있어 쿼리스트링을 뺀 링크로 중복 제거
-    seen = set()
-    deduped = []
-    for item in items:
-        key = item["link"].split("?")[0]
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(item)
+    items = scrape_latest(window_start_kst)
 
     filtered = []
-    for item in deduped:
+    for item in items:
         if not (window_start_kst <= item["pubdate_kst"] < window_end_kst):
             continue
         tags = matched_tags(item["title"])
