@@ -42,7 +42,8 @@ STALL_LIMIT = 3
 # "Won"은 "Won't"의 일부와 겹쳐 오탐이 났던 전례가 있어 뺐다(2026-07-23 확인).
 KEYWORDS = {
     "US": [r"\bU\.S\.", r"\bUS\b", r"\bUnited States\b", r"\bTrump\b", r"\bFed\b",
-           r"\bWashington\b", r"\bAmerica\b", r"\bUSMCA\b", r"\bWarsh\b", r"\bPowell\b"],
+           r"\bWashington\b", r"\bAmerica\b", r"\bUSMCA\b"],
+    "Fed": [r"\bFed\b", r"\bFederal Reserve\b", r"\bFOMC\b", r"\bWarsh\b", r"\bPowell\b"],
     "China": [r"\bChina\b", r"\bChinese\b", r"\bBeijing\b", r"\bPBOC\b", r"\bYuan\b"],
     "Japan": [r"\bJapan\b", r"\bJapanese\b", r"\bBOJ\b", r"\bTokyo\b", r"\bYen\b"],
     "Korea": [r"\bKorea\b", r"\bKorean\b", r"\bBOK\b", r"\bSeoul\b"],
@@ -62,6 +63,7 @@ KEYWORDS = {
     "Stocks": [r"\bstocks?\b", r"\bequit(y|ies)\b", r"\bshares?\b"],
     "Oil": [r"\bBrent\b", r"\bWTI\b", r"\bcrude\b", r"\boil\b", r"\bbarrels?\b",
             r"\btanker\b", r"\brefiner(y|ies)\b", r"\bOPEC\b"],
+    "Gold": [r"\bgold\b", r"\bbullion\b", r"\bXAU\b"],
 }
 PATTERNS = {k: re.compile("|".join(v), re.IGNORECASE) for k, v in KEYWORDS.items()}
 
