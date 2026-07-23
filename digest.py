@@ -293,27 +293,7 @@ def push_homepage(date_label: str) -> None:
     run(["git", "push"])
 
 
-def run_login() -> None:
-    """블룸버그 구독 계정으로 한 번 로그인해두면, scrape_economics_widget()이 쓰는 같은
-    브라우저 프로필(BROWSER_PROFILE_DIR)을 공유하므로 이후 스크래핑도 로그인된 채로
-    돈다. night-market-digest의 --login 흐름과 동일한 패턴."""
-    BROWSER_PROFILE_DIR.parent.mkdir(parents=True, exist_ok=True)
-    with sync_playwright() as p:
-        ctx = p.chromium.launch_persistent_context(
-            str(BROWSER_PROFILE_DIR),
-            headless=False,
-            channel="chrome",
-            args=["--disable-blink-features=AutomationControlled"],
-            ignore_default_args=["--enable-automation"],
-        )
-        page = ctx.new_page()
-        page.goto("https://www.bloomberg.com/account/login", wait_until="domcontentloaded")
-        print("브라우저에서 블룸버그 계정으로 로그인한 뒤, 이 터미널에서 Enter를 누르세요.")
-        input()
-        ctx.close()
-
-
-def main():
+def main() -> None:
     now_kst = datetime.now(KST)
     window_end_kst = now_kst
     window_start_kst = (now_kst - timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
@@ -337,8 +317,4 @@ def main():
 
 
 if __name__ == "__main__":
-    import sys
-    if "--login" in sys.argv:
-        run_login()
-    else:
-        main()
+    main()
