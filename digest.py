@@ -1,25 +1,26 @@
-"""bloomberg.com/latest가 내부적으로 쓰는 공개 API(lineup-next/api/stories)를 직접
-호출해 관심 주제(미국/중국/일본/한국/유럽/중동리스크/매크로/채권/주식/원유/금/연준/
+"""bloomberg.com/latest(블룸버그 전 섹션 통합 최신기사 목록)를 실제 브라우저로 직접
+스크래핑해 관심 주제(미국/중국/일본/한국/유럽/중동리스크/매크로/채권/주식/원유/금/연준/
 오피니언)로 필터링하고 한글로 번역해 옵시디언 노트 + 홈페이지(index.html)에 반영한다.
 
 자동 스케줄 없음 — 사용자가 "지금 업데이트 해줘"라고 할 때만 수동 실행한다. 그때는 창을
 고정 종료시각(예: 아침 7시)이 아니라 "지금(실행 시각)"까지로 잡는다 — 명시적으로 그렇게
 하기로 확정됨(2026-07-23).
 
-이 API는 로그인·브라우저 없이 plain HTTP로도 열람 가능하고(PerimeterX 안 걸림, 2026-07-23
-확인) ISO 발행시각을 정확히 준다 — 그래서 이전의 Playwright 기반 DOM 스크래핑(위젯
-"Load more" 버튼 클릭 방식, RSS 등)을 전부 버리고 이 API 하나로 통합했다.
+이 페이지가 내부적으로 쓰는 JSON API(lineup-next/api/stories)를 직접 호출하는 방식도
+시도했지만(브라우저 없이 더 빠름), 사용자가 "그건 하지 말고 그냥 페이지를 스크래핑하라"고
+명시적으로 요청해 이 방식(headed Playwright + DOM 파싱)으로 되돌렸다(2026-07-23).
+headless로는 PerimeterX(봇 차단)에 막히지만 headed(화면 있는) 크롬은 통과한다.
 """
 import json
 import re
 import subprocess
-import time
-import urllib.error
-import urllib.request
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
+from playwright.sync_api import sync_playwright
 
 KST = timezone(timedelta(hours=9))
 ROOT = Path(__file__).parent
@@ -27,9 +28,11 @@ VAULT_DIR = Path(
     "/Users/sunggeunmoon/Library/Mobile Documents/iCloud~md~obsidian/Documents"
     "/Moon/02.Finance/000.블룸버그기사"
 )
-STORIES_API = "https://www.bloomberg.com/lineup-next/api/stories"
-STORIES_API_QUERY = "types=ARTICLE,FEATURE,INTERACTIVE,LETTER,EXPLAINERS&locale=en&limit=25"
-MAX_PAGES = 40
+LATEST_URL = "https://www.bloomberg.com/latest"
+BROWSER_PROFILE_DIR = ROOT / "data" / "browser_profile"
+RELATIVE_TIME_RE = re.compile(r"(\d+)\s*(min|mins|minute|minutes|hr|hrs|hour|hours)\s*ago", re.IGNORECASE)
+MAX_LOAD_MORE_CLICKS = 40
+STALL_LIMIT = 3
 STORE_PATH = ROOT / "data" / "collected_items.json"
 
 # "Won"은 "Won't"의 일부와 겹쳐 오탐이 났던 전례가 있어 뺐다(2026-07-23 확인).
@@ -65,48 +68,87 @@ def matched_tags(title: str) -> list[str]:
     return [tag for tag, pat in PATTERNS.items() if pat.search(title)]
 
 
-RETRY_WAITS_SECONDS = (10, 30, 60)
-
-
-def fetch_stories_page(page_number: int) -> list[dict]:
-    """이 API는 요청이 몰리면 403을 준다(직접 확인, 2026-07-23) — 사람이 잠깐 다시
-    시도하면 보통 풀리는 수준이라 짧게 대기하며 재시도한다."""
-    url = f"{STORIES_API}?{STORIES_API_QUERY}&pageNumber={page_number}"
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    last_error = None
-    for attempt, wait_seconds in enumerate((0,) + RETRY_WAITS_SECONDS):
-        if wait_seconds:
-            print(f"[digest] API 403 — {wait_seconds}초 대기 후 재시도")
-            time.sleep(wait_seconds)
-        try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                return json.loads(resp.read())
-        except urllib.error.HTTPError as e:
-            if e.code != 403:
-                raise
-            last_error = e
-    raise last_error
+def parse_relative_time(text: str, scraped_at: datetime) -> datetime | None:
+    text = text.strip()
+    if text.lower() in ("just now", "now"):
+        return scraped_at
+    m = RELATIVE_TIME_RE.search(text)
+    if not m:
+        return None
+    n = int(m.group(1))
+    unit = m.group(2).lower()
+    delta = timedelta(hours=n) if unit.startswith(("hr", "hour")) else timedelta(minutes=n)
+    return scraped_at - delta
 
 
 def scrape_latest(window_start_kst: datetime) -> list[dict]:
+    """headed Chrome으로 /latest를 열고 "더 보기" 버튼을 눌러가며 기사를 모은다.
+    이 버튼의 accessible name은 화면 글자("Load more")가 아니라 aria-label="more
+    stories"다 — get_by_role(name="Load more")로 찾으면 하루 종일 못 찾는다(2026-07-23
+    발견)."""
+    BROWSER_PROFILE_DIR.parent.mkdir(parents=True, exist_ok=True)
     items = []
-    for page_number in range(1, MAX_PAGES + 1):
-        if page_number > 1:
-            time.sleep(1.5)
-        stories = fetch_stories_page(page_number)
-        if not stories:
-            break
-        oldest_pubdate = None
-        for s in stories:
-            pubdate_kst = datetime.fromisoformat(s["publishedAt"].replace("Z", "+00:00")).astimezone(KST)
-            oldest_pubdate = pubdate_kst if oldest_pubdate is None else min(oldest_pubdate, pubdate_kst)
-            link = "https://www.bloomberg.com" + s["url"]
-            items.append({
-                "title": s["headline"], "link": link, "pubdate_kst": pubdate_kst,
-                "is_opinion": "/opinion/" in s["url"],
-            })
-        if oldest_pubdate is not None and oldest_pubdate < window_start_kst:
-            break
+    seen_hrefs = set()
+    with sync_playwright() as p:
+        ctx = p.chromium.launch_persistent_context(
+            str(BROWSER_PROFILE_DIR),
+            headless=False,
+            channel="chrome",
+            args=["--disable-blink-features=AutomationControlled"],
+            ignore_default_args=["--enable-automation"],
+        )
+        page = ctx.new_page()
+        page.goto(LATEST_URL, wait_until="domcontentloaded", timeout=30000)
+        page.wait_for_timeout(3000)
+
+        stall = 0
+        for _ in range(MAX_LOAD_MORE_CLICKS):
+            scraped_at = datetime.now(KST)
+            soup = BeautifulSoup(page.content(), "html.parser")
+            containers = soup.find_all("div", class_="Latest_itemContainer__0_MJl")
+            if not containers:
+                print("[digest] /latest 목록을 못 찾음 — 스크래핑 중단")
+                break
+
+            new_count = 0
+            oldest_pubdate = None
+            for c in containers:
+                a = c.find("a", class_="Latest_storyLink__80QVD")
+                time_el = c.find("time")
+                if a is None or time_el is None:
+                    continue
+                href = urllib.parse.urljoin(LATEST_URL, a["href"]).split("?")[0]
+                pubdate_kst = parse_relative_time(time_el.get_text(strip=True), scraped_at)
+                if pubdate_kst is None:
+                    continue
+                oldest_pubdate = pubdate_kst if oldest_pubdate is None else min(oldest_pubdate, pubdate_kst)
+                if href in seen_hrefs:
+                    continue
+                seen_hrefs.add(href)
+                headline_el = a.find(attrs={"data-testid": "headline"})
+                title = headline_el.get_text(strip=True) if headline_el else a.get_text(strip=True)
+                eyebrow = c.find("div", class_=lambda cls: cls and "optionalEyebrow" in cls)
+                is_opinion = bool(eyebrow and "Opinion" in eyebrow.get_text()) or "/opinion/" in href
+                items.append({
+                    "title": title, "link": href, "pubdate_kst": pubdate_kst,
+                    "is_opinion": is_opinion,
+                })
+                new_count += 1
+
+            stall = stall + 1 if new_count == 0 else 0
+            if stall >= STALL_LIMIT:
+                break
+            if oldest_pubdate is not None and oldest_pubdate < window_start_kst:
+                break
+
+            load_more = page.get_by_role("button", name="more stories")
+            if load_more.count() == 0:
+                break
+            load_more.first.scroll_into_view_if_needed(timeout=3000)
+            load_more.first.click(timeout=3000)
+            page.wait_for_timeout(1200)
+
+        ctx.close()
     return items
 
 
