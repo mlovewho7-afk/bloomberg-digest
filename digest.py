@@ -81,11 +81,12 @@ def parse_relative_time(text: str, scraped_at: datetime) -> datetime | None:
     return scraped_at - delta
 
 
-def scrape_latest(window_start_kst: datetime) -> list[dict]:
+def scrape_latest(window_start_kst: datetime, max_clicks: int = MAX_LOAD_MORE_CLICKS) -> list[dict]:
     """headed Chrome으로 /latest를 열고 "더 보기" 버튼을 눌러가며 기사를 모은다.
     이 버튼의 accessible name은 화면 글자("Load more")가 아니라 aria-label="more
     stories"다 — get_by_role(name="Load more")로 찾으면 하루 종일 못 찾는다(2026-07-23
-    발견)."""
+    발견). 넓은 창(예: 일주일치)을 돌 때 도중에 차단/오류가 나도 그때까지 모은 건
+    버리지 않고 반환한다 — 위쪽의 누적 저장소가 부분 결과라도 이어붙일 수 있게."""
     BROWSER_PROFILE_DIR.parent.mkdir(parents=True, exist_ok=True)
     items = []
     seen_hrefs = set()
@@ -98,57 +99,64 @@ def scrape_latest(window_start_kst: datetime) -> list[dict]:
             ignore_default_args=["--enable-automation"],
         )
         page = ctx.new_page()
-        page.goto(LATEST_URL, wait_until="domcontentloaded", timeout=30000)
-        page.wait_for_timeout(3000)
+        try:
+            page.goto(LATEST_URL, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(3000)
 
-        stall = 0
-        for _ in range(MAX_LOAD_MORE_CLICKS):
-            scraped_at = datetime.now(KST)
-            soup = BeautifulSoup(page.content(), "html.parser")
-            containers = soup.find_all("div", class_="Latest_itemContainer__0_MJl")
-            if not containers:
-                print("[digest] /latest 목록을 못 찾음 — 스크래핑 중단")
-                break
+            stall = 0
+            for click_num in range(max_clicks):
+                scraped_at = datetime.now(KST)
+                soup = BeautifulSoup(page.content(), "html.parser")
+                containers = soup.find_all("div", class_="Latest_itemContainer__0_MJl")
+                if not containers:
+                    print("[digest] /latest 목록을 못 찾음 — 스크래핑 중단")
+                    break
 
-            new_count = 0
-            oldest_pubdate = None
-            for c in containers:
-                a = c.find("a", class_="Latest_storyLink__80QVD")
-                time_el = c.find("time")
-                if a is None or time_el is None:
-                    continue
-                href = urllib.parse.urljoin(LATEST_URL, a["href"]).split("?")[0]
-                pubdate_kst = parse_relative_time(time_el.get_text(strip=True), scraped_at)
-                if pubdate_kst is None:
-                    continue
-                oldest_pubdate = pubdate_kst if oldest_pubdate is None else min(oldest_pubdate, pubdate_kst)
-                if href in seen_hrefs:
-                    continue
-                seen_hrefs.add(href)
-                headline_el = a.find(attrs={"data-testid": "headline"})
-                title = headline_el.get_text(strip=True) if headline_el else a.get_text(strip=True)
-                eyebrow = c.find("div", class_=lambda cls: cls and "optionalEyebrow" in cls)
-                is_opinion = bool(eyebrow and "Opinion" in eyebrow.get_text()) or "/opinion/" in href
-                items.append({
-                    "title": title, "link": href, "pubdate_kst": pubdate_kst,
-                    "is_opinion": is_opinion,
-                })
-                new_count += 1
+                new_count = 0
+                oldest_pubdate = None
+                for c in containers:
+                    a = c.find("a", class_="Latest_storyLink__80QVD")
+                    time_el = c.find("time")
+                    if a is None or time_el is None:
+                        continue
+                    href = urllib.parse.urljoin(LATEST_URL, a["href"]).split("?")[0]
+                    pubdate_kst = parse_relative_time(time_el.get_text(strip=True), scraped_at)
+                    if pubdate_kst is None:
+                        continue
+                    oldest_pubdate = pubdate_kst if oldest_pubdate is None else min(oldest_pubdate, pubdate_kst)
+                    if href in seen_hrefs:
+                        continue
+                    seen_hrefs.add(href)
+                    headline_el = a.find(attrs={"data-testid": "headline"})
+                    title = headline_el.get_text(strip=True) if headline_el else a.get_text(strip=True)
+                    eyebrow = c.find("div", class_=lambda cls: cls and "optionalEyebrow" in cls)
+                    is_opinion = bool(eyebrow and "Opinion" in eyebrow.get_text()) or "/opinion/" in href
+                    items.append({
+                        "title": title, "link": href, "pubdate_kst": pubdate_kst,
+                        "is_opinion": is_opinion,
+                    })
+                    new_count += 1
 
-            stall = stall + 1 if new_count == 0 else 0
-            if stall >= STALL_LIMIT:
-                break
-            if oldest_pubdate is not None and oldest_pubdate < window_start_kst:
-                break
+                if click_num % 10 == 0:
+                    print(f"[digest] 스크롤 {click_num}회, 누적 {len(items)}건, "
+                          f"가장 과거 {oldest_pubdate}")
 
-            load_more = page.get_by_role("button", name="more stories")
-            if load_more.count() == 0:
-                break
-            load_more.first.scroll_into_view_if_needed(timeout=3000)
-            load_more.first.click(timeout=3000)
-            page.wait_for_timeout(1200)
+                stall = stall + 1 if new_count == 0 else 0
+                if stall >= STALL_LIMIT:
+                    break
+                if oldest_pubdate is not None and oldest_pubdate < window_start_kst:
+                    break
 
-        ctx.close()
+                load_more = page.get_by_role("button", name="more stories")
+                if load_more.count() == 0:
+                    break
+                load_more.first.scroll_into_view_if_needed(timeout=3000)
+                load_more.first.click(timeout=3000)
+                page.wait_for_timeout(1200)
+        except Exception as e:
+            print(f"[digest] 스크래핑 중 오류 발생, 지금까지 모은 {len(items)}건만 사용: {e!r}")
+        finally:
+            ctx.close()
     return items
 
 
@@ -197,7 +205,7 @@ def save_to_obsidian(date_label: str, note: str) -> Path:
 
 def render_day_section_html(date_label: str, items: list[dict]) -> str:
     rows = []
-    for it in items:
+    for it in reversed(items):  # 홈페이지는 최신 기사가 맨 위(사용자 요청, 2026-07-27)
         stamp = it["pubdate_kst"].strftime("%m-%d %H:%M")
         tags = "".join(f'<span class="tag">{t}</span>' for t in it["tags"])
         rows.append(
