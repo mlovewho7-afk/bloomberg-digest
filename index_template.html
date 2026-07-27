@@ -6,6 +6,7 @@
 <title>Bloomberg 기사 요약</title>
 <style>
   :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
   body {
     background: #0b0e14;
     color: #e6e6e6;
@@ -38,11 +39,37 @@
   .tag.active { background: #8ab4f8; color: #0b0e14; }
   a { color: #e6e6e6; text-decoration: none; flex: 1 1 auto; }
   a:hover { text-decoration: underline; color: #8ab4f8; }
+
+  #topBar {
+    position: sticky;
+    top: 0;
+    background: #0b0e14;
+    padding-top: 14px;
+    margin-bottom: 4px;
+    z-index: 10;
+  }
+  #searchBox {
+    width: 100%;
+    background: #12161f;
+    border: 1px solid #2a2f3a;
+    color: #e6e6e6;
+    font-size: 0.9rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: inherit;
+  }
+  #searchBox:focus { outline: none; border-color: #8ab4f8; }
+  #topTags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
   #filterBar {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 14px;
+    margin-top: 10px;
     font-size: 0.85rem;
     color: #6b7280;
     min-height: 1.2em;
@@ -62,47 +89,78 @@
 </style>
 </head>
 <body>
-<h1>Bloomberg 기사 요약</h1>
-<div id="filterBar">
-  <span id="filterStatus">태그를 클릭하면 그 주제만 모아 볼 수 있습니다.</span>
-  <button id="resetFilter" type="button">전체 보기</button>
+<div id="topBar">
+  <h1>Bloomberg 기사 요약</h1>
+  <input type="text" id="searchBox" placeholder="제목 검색...">
+  <div id="topTags"></div>
+  <div id="filterBar">
+    <span id="filterStatus">태그를 클릭하거나 검색하면 걸러 볼 수 있습니다.</span>
+    <button id="resetFilter" type="button">전체 보기</button>
+  </div>
 </div>
 <!-- SECTIONS -->
 <script>
+var state = { tag: null, query: '' };
+
+document.addEventListener('DOMContentLoaded', function () {
+  var tagNames = new Set();
+  document.querySelectorAll('li .tag').forEach(function (t) { tagNames.add(t.textContent); });
+  var topTags = document.getElementById('topTags');
+  Array.from(tagNames).sort().forEach(function (name) {
+    var btn = document.createElement('button');
+    btn.className = 'tag topTagBtn';
+    btn.textContent = name;
+    topTags.appendChild(btn);
+  });
+});
+
 document.addEventListener('click', function (e) {
   var tag = e.target.closest('.tag');
   if (tag) {
-    filterByTag(tag.textContent);
+    state.tag = (state.tag === tag.textContent) ? null : tag.textContent;
+    applyFilters();
     return;
   }
   if (e.target.closest('#resetFilter')) {
-    showAll();
+    state.tag = null;
+    state.query = '';
+    document.getElementById('searchBox').value = '';
+    applyFilters();
   }
 });
 
-function filterByTag(tagName) {
+document.getElementById('searchBox').addEventListener('input', function (e) {
+  state.query = e.target.value.trim().toLowerCase();
+  applyFilters();
+});
+
+function applyFilters() {
   document.querySelectorAll('.tag').forEach(function (t) {
-    t.classList.toggle('active', t.textContent === tagName);
+    t.classList.toggle('active', state.tag !== null && t.textContent === state.tag);
   });
+
   document.querySelectorAll('section').forEach(function (section) {
     var visibleCount = 0;
     section.querySelectorAll('li').forEach(function (li) {
       var tags = Array.from(li.querySelectorAll('.tag')).map(function (t) { return t.textContent; });
-      var match = tags.indexOf(tagName) !== -1;
+      var tagMatch = state.tag === null || tags.indexOf(state.tag) !== -1;
+      var titleText = (li.querySelector('a') || {}).textContent || '';
+      var queryMatch = state.query === '' || titleText.toLowerCase().indexOf(state.query) !== -1;
+      var match = tagMatch && queryMatch;
       li.style.display = match ? '' : 'none';
       if (match) visibleCount++;
     });
     section.style.display = visibleCount > 0 ? '' : 'none';
   });
-  document.getElementById('filterStatus').textContent = '"' + tagName + '" 태그만 보는 중';
-  document.getElementById('resetFilter').style.display = 'inline-block';
-}
 
-function showAll() {
-  document.querySelectorAll('.tag').forEach(function (t) { t.classList.remove('active'); });
-  document.querySelectorAll('li, section').forEach(function (el) { el.style.display = ''; });
-  document.getElementById('filterStatus').textContent = '태그를 클릭하면 그 주제만 모아 볼 수 있습니다.';
-  document.getElementById('resetFilter').style.display = 'none';
+  var active = state.tag !== null || state.query !== '';
+  var parts = [];
+  if (state.tag !== null) parts.push('태그 "' + state.tag + '"');
+  if (state.query !== '') parts.push('검색어 "' + state.query + '"');
+  document.getElementById('filterStatus').textContent = active
+    ? parts.join(' + ') + '로 걸러보는 중'
+    : '태그를 클릭하거나 검색하면 걸러 볼 수 있습니다.';
+  document.getElementById('resetFilter').style.display = active ? 'inline-block' : 'none';
 }
 </script>
 </body>
