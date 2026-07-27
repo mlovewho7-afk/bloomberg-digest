@@ -103,10 +103,19 @@
 var state = { tag: null, query: '' };
 
 document.addEventListener('DOMContentLoaded', function () {
+  var tagOrder = ['US', 'Macro', 'Fed', 'Bonds', 'Stocks', 'Oil', 'MiddleEast', 'Gold',
+                   'Japan', 'China', 'Korea', 'Opinion'];
   var tagNames = new Set();
   document.querySelectorAll('li .tag').forEach(function (t) { tagNames.add(t.textContent); });
+  var sortedTags = Array.from(tagNames).sort(function (a, b) {
+    var ia = tagOrder.indexOf(a), ib = tagOrder.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
   var topTags = document.getElementById('topTags');
-  Array.from(tagNames).sort().forEach(function (name) {
+  sortedTags.forEach(function (name) {
     var btn = document.createElement('button');
     btn.className = 'tag topTagBtn';
     btn.textContent = name;
