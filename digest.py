@@ -30,6 +30,7 @@ VAULT_DIR = Path(
 )
 LATEST_URL = "https://www.bloomberg.com/latest"
 BROWSER_PROFILE_DIR = ROOT / "data" / "browser_profile"
+CDP_URL = "http://localhost:9333"
 RELATIVE_TIME_RE = re.compile(r"(\d+)\s*(min|mins|minute|minutes|hr|hrs|hour|hours)\s*ago", re.IGNORECASE)
 MAX_LOAD_MORE_CLICKS = 40
 STALL_LIMIT = 3
@@ -86,18 +87,30 @@ def scrape_latest(window_start_kst: datetime, max_clicks: int = MAX_LOAD_MORE_CL
     이 버튼의 accessible name은 화면 글자("Load more")가 아니라 aria-label="more
     stories"다 — get_by_role(name="Load more")로 찾으면 하루 종일 못 찾는다(2026-07-23
     발견). 넓은 창(예: 일주일치)을 돌 때 도중에 차단/오류가 나도 그때까지 모은 건
-    버리지 않고 반환한다 — 위쪽의 누적 저장소가 부분 결과라도 이어붙일 수 있게."""
+    버리지 않고 반환한다 — 위쪽의 누적 저장소가 부분 결과라도 이어붙일 수 있게.
+
+    매번 새 크롬 프로세스를 띄우면 PerimeterX가 "매번 새 세션"으로 보고 더 의심할 수
+    있다는 가설로(2026-08-12, 사용자 추측), `start_chrome.sh`로 미리 켜둔 지속 크롬이
+    있으면 CDP로 그 창에 붙어서 탭만 새로 연다(브라우저 자체는 계속 살아있음). 없으면
+    예전처럼 새 프로세스를 띄운다 — 지속 크롬을 안 켜놨어도 그대로 동작한다."""
     BROWSER_PROFILE_DIR.parent.mkdir(parents=True, exist_ok=True)
     items = []
     seen_hrefs = set()
     with sync_playwright() as p:
-        ctx = p.chromium.launch_persistent_context(
-            str(BROWSER_PROFILE_DIR),
-            headless=False,
-            channel="chrome",
-            args=["--disable-blink-features=AutomationControlled"],
-            ignore_default_args=["--enable-automation"],
-        )
+        reused_browser = False
+        try:
+            browser = p.chromium.connect_over_cdp(CDP_URL, timeout=3000)
+            ctx = browser.contexts[0] if browser.contexts else browser.new_context()
+            reused_browser = True
+            print("[digest] 지속 크롬(CDP)에 연결됨 — 새 탭만 엶")
+        except Exception:
+            ctx = p.chromium.launch_persistent_context(
+                str(BROWSER_PROFILE_DIR),
+                headless=False,
+                channel="chrome",
+                args=["--disable-blink-features=AutomationControlled"],
+                ignore_default_args=["--enable-automation"],
+            )
         page = ctx.new_page()
         try:
             page.goto(LATEST_URL, wait_until="domcontentloaded", timeout=30000)
@@ -156,7 +169,10 @@ def scrape_latest(window_start_kst: datetime, max_clicks: int = MAX_LOAD_MORE_CL
         except Exception as e:
             print(f"[digest] 스크래핑 중 오류 발생, 지금까지 모은 {len(items)}건만 사용: {e!r}")
         finally:
-            ctx.close()
+            if reused_browser:
+                page.close()  # 브라우저는 계속 켜둔 채 탭만 닫는다
+            else:
+                ctx.close()
     return items
 
 
