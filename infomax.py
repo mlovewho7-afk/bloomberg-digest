@@ -137,3 +137,54 @@ def update_infomax_pane(date_label: str, items: list[dict]) -> None:
         html_text = html_text[:insert_at] + "\n" + new_section + html_text[insert_at:]
 
     write_atomic(index_path, html_text)
+
+
+def push_homepage(date_label: str) -> None:
+    def run(cmd):
+        subprocess.run(cmd, cwd=ROOT, check=True, timeout=60)
+
+    run(["git", "add", "index.html"])
+    result = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT, timeout=60)
+    if result.returncode == 0:
+        print("[infomax] 홈페이지 변경 없음 — 커밋 생략")
+        return
+    run(["git", "commit", "-m", f"update: {date_label} 인포맥스 기사"])
+    run(["git", "push"])
+
+
+def main() -> None:
+    now_kst = datetime.now(KST)
+    print(f"[infomax] RSS 수집 시작: {RSS_URL}")
+    items = fetch_rss(RSS_URL)
+    oldest = min((i["pubdate_kst"] for i in items), default=None)
+    print(f"[infomax] RSS {len(items)}건 수신, 가장 과거 pubDate: {oldest}")
+
+    warning = stale_pubdate_warning(items, now_kst)
+    if warning:
+        print(f"[infomax] {warning}")
+
+    store = load_store()
+    added_by_date = merge_items(store, items)
+    total_added = sum(added_by_date.values())
+    print(f"[infomax] 신규 {total_added}건 추가 ({added_by_date})")
+
+    if not added_by_date:
+        print("[infomax] 신규 항목 없음 — 종료")
+        return
+
+    save_store(store)
+
+    with homepage_lock():
+        for date_label in added_by_date:
+            day_items = [
+                {**v, "pubdate_kst": datetime.fromisoformat(v["pubdate_kst"])}
+                for v in store[date_label].values()
+            ]
+            day_items.sort(key=lambda x: x["pubdate_kst"])
+            update_infomax_pane(date_label, day_items)
+        push_homepage(now_kst.date().isoformat())
+    print("[infomax] 완료")
+
+
+if __name__ == "__main__":
+    main()
