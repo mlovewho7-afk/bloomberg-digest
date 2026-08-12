@@ -101,3 +101,39 @@ def render_infomax_day_section_html(date_label: str, items: list[dict]) -> str:
             f'<a href="{it["link"]}" target="_blank" rel="noopener">{it["title"]}</a></li>'
         )
     return f'<section class="infomaxSection"><h2>{date_label}</h2><ul>' + "\n".join(rows) + "</ul></section>"
+
+
+def update_infomax_pane(date_label: str, items: list[dict]) -> None:
+    index_path = ROOT / "index.html"
+    new_section = render_infomax_day_section_html(date_label, items)
+    marker = "<!-- INFOMAX_SECTIONS -->"
+
+    if index_path.exists():
+        html_text = index_path.read_text(encoding="utf-8")
+        source_desc = "index.html"
+    else:
+        html_text = (ROOT / "index_template.html").read_text(encoding="utf-8")
+        source_desc = "index_template.html"
+
+    # 파일이 있든 없든(템플릿 부트스트랩이든) 마커 확인은 동일하게 적용한다 — 이전
+    # 버전은 이 체크를 "파일이 이미 존재하는" 분기에만 걸어서, 템플릿 자체에 마커가
+    # 없으면 existing_start=-1인 채로 insert_at 계산에 그대로 쓰여 파일 임의
+    # 위치(바이트 오프셋 음수+len(marker))에 조용히 잘못 삽입되는 실제 버그가 있었다
+    # (2026-08-12 plan review에서 critical로 지적됨).
+    existing_start = html_text.find(marker)
+    if existing_start == -1:
+        raise RuntimeError(
+            f"{source_desc}에서 <!-- INFOMAX_SECTIONS --> 마커를 찾을 수 없음 — 파일이 "
+            "손상됐거나 마이그레이션이 안 된 상태일 수 있으니 수동으로 확인할 것"
+        )
+
+    day_marker = f'<section class="infomaxSection"><h2>{date_label}</h2>'
+    if day_marker in html_text:
+        start = html_text.find(day_marker)
+        end = html_text.find("</section>", start) + len("</section>")
+        html_text = html_text[:start] + new_section + html_text[end:]
+    else:
+        insert_at = existing_start + len(marker)
+        html_text = html_text[:insert_at] + "\n" + new_section + html_text[insert_at:]
+
+    write_atomic(index_path, html_text)

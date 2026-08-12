@@ -3,7 +3,7 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from infomax import KST, fetch_rss, load_store, merge_items, parse_rss_xml, render_infomax_day_section_html, save_store, stale_pubdate_warning
+from infomax import KST, fetch_rss, load_store, merge_items, parse_rss_xml, render_infomax_day_section_html, save_store, stale_pubdate_warning, update_infomax_pane
 
 SAMPLE_XML = """<?xml version="1.0" encoding="utf-8" ?>
 <rss version="2.0"><channel>
@@ -124,6 +124,92 @@ def test_render_infomax_day_section_html_empty_items():
     print("test_render_infomax_day_section_html_empty_items: OK")
 
 
+def _one_item(title="a", link="https://a", hour=9):
+    return [{"title": title, "link": link, "pubdate_kst": datetime(2026, 8, 12, hour, 0, tzinfo=KST)}]
+
+
+def test_update_infomax_pane_bootstraps_from_template_when_file_absent():
+    with tempfile.TemporaryDirectory() as d:
+        import infomax
+        infomax.ROOT = Path(d)
+        (Path(d) / "index_template.html").write_text(
+            "<html><body><!-- INFOMAX_SECTIONS --></body></html>", encoding="utf-8"
+        )
+        update_infomax_pane("2026-08-12", _one_item())
+        result = (Path(d) / "index.html").read_text(encoding="utf-8")
+        assert "<!-- INFOMAX_SECTIONS -->" in result
+        assert "infomaxSection" in result
+    print("test_update_infomax_pane_bootstraps_from_template_when_file_absent: OK")
+
+
+def test_update_infomax_pane_inserts_new_date_above_existing():
+    with tempfile.TemporaryDirectory() as d:
+        import infomax
+        infomax.ROOT = Path(d)
+        (Path(d) / "index_template.html").write_text(
+            "<html><body><!-- INFOMAX_SECTIONS --></body></html>", encoding="utf-8"
+        )
+        update_infomax_pane("2026-08-11", _one_item(link="https://old"))
+        update_infomax_pane("2026-08-12", _one_item(link="https://new"))
+        result = (Path(d) / "index.html").read_text(encoding="utf-8")
+        assert result.index("2026-08-12") < result.index("2026-08-11"), "새 날짜가 위에 와야 함"
+        assert "https://old" in result, "과거 날짜 섹션이 사라지면 안 됨"
+    print("test_update_infomax_pane_inserts_new_date_above_existing: OK")
+
+
+def test_update_infomax_pane_replaces_same_day_not_duplicates():
+    with tempfile.TemporaryDirectory() as d:
+        import infomax
+        infomax.ROOT = Path(d)
+        (Path(d) / "index_template.html").write_text(
+            "<html><body><!-- INFOMAX_SECTIONS --></body></html>", encoding="utf-8"
+        )
+        update_infomax_pane("2026-08-12", _one_item(link="https://first"))
+        update_infomax_pane("2026-08-12", _one_item(link="https://second"))
+        result = (Path(d) / "index.html").read_text(encoding="utf-8")
+        assert result.count('<section class="infomaxSection"><h2>2026-08-12</h2>') == 1
+        assert "https://first" not in result, "재실행 시 이전 내용이 아니라 최신 내용으로 교체돼야 함"
+        assert "https://second" in result
+    print("test_update_infomax_pane_replaces_same_day_not_duplicates: OK")
+
+
+def test_update_infomax_pane_raises_when_marker_missing_and_does_not_write():
+    with tempfile.TemporaryDirectory() as d:
+        import infomax
+        infomax.ROOT = Path(d)
+        (Path(d) / "index_template.html").write_text("<html></html>", encoding="utf-8")
+        broken = "<html><body>no marker</body></html>"
+        (Path(d) / "index.html").write_text(broken, encoding="utf-8")
+
+        raised = False
+        try:
+            update_infomax_pane("2026-08-12", _one_item())
+        except RuntimeError:
+            raised = True
+
+        assert raised
+        assert (Path(d) / "index.html").read_text(encoding="utf-8") == broken
+    print("test_update_infomax_pane_raises_when_marker_missing_and_does_not_write: OK")
+
+
+def test_update_infomax_pane_raises_when_template_itself_lacks_marker():
+    with tempfile.TemporaryDirectory() as d:
+        import infomax
+        infomax.ROOT = Path(d)
+        (Path(d) / "index_template.html").write_text("<html><body>no marker</body></html>", encoding="utf-8")
+        # index.html은 아예 없음 -> 템플릿 부트스트랩 분기를 타야 함
+
+        raised = False
+        try:
+            update_infomax_pane("2026-08-12", _one_item())
+        except RuntimeError:
+            raised = True
+
+        assert raised, "템플릿 자체에 마커가 없어도 RuntimeError가 발생해야 함(잘못된 위치 삽입 금지)"
+        assert not (Path(d) / "index.html").exists(), "예외 발생 시 index.html이 새로 생기면 안 됨"
+    print("test_update_infomax_pane_raises_when_template_itself_lacks_marker: OK")
+
+
 if __name__ == "__main__":
     test_parse_rss_xml_unescapes_double_encoded_entities()
     test_parse_rss_xml_empty_channel_returns_empty_list()
@@ -136,4 +222,9 @@ if __name__ == "__main__":
     test_merge_items_buckets_by_own_pubdate_not_fixed_window()
     test_render_infomax_day_section_html_newest_first()
     test_render_infomax_day_section_html_empty_items()
-    print("ALL TESTS PASSED (Task 5)")
+    test_update_infomax_pane_bootstraps_from_template_when_file_absent()
+    test_update_infomax_pane_inserts_new_date_above_existing()
+    test_update_infomax_pane_replaces_same_day_not_duplicates()
+    test_update_infomax_pane_raises_when_marker_missing_and_does_not_write()
+    test_update_infomax_pane_raises_when_template_itself_lacks_marker()
+    print("ALL TESTS PASSED (Task 6)")
