@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bloomberg 기사 요약</title>
+<title>Bloomberg / 연합인포맥스 기사 요약</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -40,7 +40,25 @@
   a { color: #e6e6e6; text-decoration: none; flex: 1 1 auto; }
   a:hover { text-decoration: underline; color: #8ab4f8; }
 
-  #topBar {
+  #tabBar {
+    display: flex;
+    gap: 8px;
+    padding-top: 4px;
+    margin-bottom: 12px;
+  }
+  .tabBtn {
+    background: #12161f;
+    border: 1px solid #2a2f3a;
+    color: #8ab4f8;
+    font-size: 0.9rem;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .tabBtn.active { background: #8ab4f8; color: #0b0e14; border-color: #8ab4f8; }
+
+  #topBar, #infomaxTopBar {
     position: sticky;
     top: 0;
     background: #0b0e14;
@@ -48,7 +66,7 @@
     margin-bottom: 4px;
     z-index: 10;
   }
-  #searchBox {
+  #searchBox, #infomaxSearchBox {
     width: 100%;
     background: #12161f;
     border: 1px solid #2a2f3a;
@@ -58,7 +76,7 @@
     border-radius: 6px;
     font-family: inherit;
   }
-  #searchBox:focus { outline: none; border-color: #8ab4f8; }
+  #searchBox:focus, #infomaxSearchBox:focus { outline: none; border-color: #8ab4f8; }
   #topTags {
     display: flex;
     flex-wrap: wrap;
@@ -89,6 +107,12 @@
 </style>
 </head>
 <body>
+<div id="tabBar">
+  <button id="tabBloomberg" class="tabBtn active" type="button">Bloomberg</button>
+  <button id="tabInfomax" class="tabBtn" type="button">연합인포맥스</button>
+</div>
+
+<div id="bloombergPane">
 <div id="topBar">
   <h1>Bloomberg 기사 요약</h1>
   <input type="text" id="searchBox" placeholder="제목 검색...">
@@ -99,6 +123,16 @@
   </div>
 </div>
 <!-- SECTIONS -->
+</div>
+
+<div id="infomaxPane" style="display:none">
+  <div id="infomaxTopBar">
+    <h1>연합인포맥스 채권/외환</h1>
+    <input type="text" id="infomaxSearchBox" placeholder="제목 검색...">
+  </div>
+  <!-- INFOMAX_SECTIONS -->
+</div>
+
 <script>
 var state = { tag: null, query: '' };
 
@@ -148,7 +182,7 @@ function applyFilters() {
     t.classList.toggle('active', state.tag !== null && t.textContent === state.tag);
   });
 
-  document.querySelectorAll('section').forEach(function (section) {
+  document.querySelectorAll('#bloombergPane section').forEach(function (section) {
     var visibleCount = 0;
     section.querySelectorAll('li').forEach(function (li) {
       var tags = Array.from(li.querySelectorAll('.tag')).map(function (t) { return t.textContent; });
@@ -170,6 +204,38 @@ function applyFilters() {
     ? parts.join(' + ') + '로 걸러보는 중'
     : '태그를 클릭하거나 검색하면 걸러 볼 수 있습니다.';
   document.getElementById('resetFilter').style.display = active ? 'inline-block' : 'none';
+}
+
+var infomaxState = { query: '' };
+
+function switchTab(tab) {
+  document.getElementById('bloombergPane').style.display = tab === 'bloomberg' ? '' : 'none';
+  document.getElementById('infomaxPane').style.display = tab === 'infomax' ? '' : 'none';
+  document.getElementById('tabBloomberg').classList.toggle('active', tab === 'bloomberg');
+  document.getElementById('tabInfomax').classList.toggle('active', tab === 'infomax');
+  localStorage.setItem('activeTab', tab);
+}
+
+document.getElementById('tabBloomberg').addEventListener('click', function () { switchTab('bloomberg'); });
+document.getElementById('tabInfomax').addEventListener('click', function () { switchTab('infomax'); });
+switchTab(localStorage.getItem('activeTab') || 'bloomberg');
+
+document.getElementById('infomaxSearchBox').addEventListener('input', function (e) {
+  infomaxState.query = e.target.value.trim().toLowerCase();
+  applyInfomaxFilter();
+});
+
+function applyInfomaxFilter() {
+  document.querySelectorAll('#infomaxPane section').forEach(function (section) {
+    var visibleCount = 0;
+    section.querySelectorAll('li').forEach(function (li) {
+      var titleText = (li.querySelector('a') || {}).textContent || '';
+      var match = infomaxState.query === '' || titleText.toLowerCase().indexOf(infomaxState.query) !== -1;
+      li.style.display = match ? '' : 'none';
+      if (match) visibleCount++;
+    });
+    section.style.display = visibleCount > 0 ? '' : 'none';
+  });
 }
 </script>
 </body>
