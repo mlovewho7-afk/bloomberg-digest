@@ -90,3 +90,14 @@ def merge_items(store: dict, items: list[dict]) -> dict[str, int]:
             day_store[item["link"]] = {**item, "pubdate_kst": item["pubdate_kst"].isoformat()}
             added_by_date[date_label] = added_by_date.get(date_label, 0) + 1
     return added_by_date
+
+
+def render_infomax_day_section_html(date_label: str, items: list[dict]) -> str:
+    rows = []
+    for it in reversed(items):  # 최신 기사가 맨 위(블룸버그와 동일 관례)
+        stamp = it["pubdate_kst"].strftime("%m-%d %H:%M")
+        rows.append(
+            f'<li><span class="stamp">{stamp}</span>'
+            f'<a href="{it["link"]}" target="_blank" rel="noopener">{it["title"]}</a></li>'
+        )
+    return f'<section class="infomaxSection"><h2>{date_label}</h2><ul>' + "\n".join(rows) + "</ul></section>"

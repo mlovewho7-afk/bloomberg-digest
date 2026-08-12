@@ -3,7 +3,7 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from infomax import KST, fetch_rss, load_store, merge_items, parse_rss_xml, save_store, stale_pubdate_warning
+from infomax import KST, fetch_rss, load_store, merge_items, parse_rss_xml, render_infomax_day_section_html, save_store, stale_pubdate_warning
 
 SAMPLE_XML = """<?xml version="1.0" encoding="utf-8" ?>
 <rss version="2.0"><channel>
@@ -105,6 +105,25 @@ def test_merge_items_buckets_by_own_pubdate_not_fixed_window():
     print("test_merge_items_buckets_by_own_pubdate_not_fixed_window: OK")
 
 
+def test_render_infomax_day_section_html_newest_first():
+    items = [
+        {"title": "오래된 기사", "link": "https://a", "pubdate_kst": datetime(2026, 8, 12, 7, 0, tzinfo=KST)},
+        {"title": "최신 기사", "link": "https://b", "pubdate_kst": datetime(2026, 8, 12, 9, 0, tzinfo=KST)},
+    ]
+    html_out = render_infomax_day_section_html("2026-08-12", items)
+    assert html_out.startswith('<section class="infomaxSection"><h2>2026-08-12</h2><ul>')
+    assert html_out.index("최신 기사") < html_out.index("오래된 기사"), "최신이 위에 와야 함"
+    assert 'href="https://b"' in html_out
+    assert html_out.endswith("</ul></section>")
+    print("test_render_infomax_day_section_html_newest_first: OK")
+
+
+def test_render_infomax_day_section_html_empty_items():
+    html_out = render_infomax_day_section_html("2026-08-12", [])
+    assert html_out == '<section class="infomaxSection"><h2>2026-08-12</h2><ul></ul></section>'
+    print("test_render_infomax_day_section_html_empty_items: OK")
+
+
 if __name__ == "__main__":
     test_parse_rss_xml_unescapes_double_encoded_entities()
     test_parse_rss_xml_empty_channel_returns_empty_list()
@@ -115,4 +134,6 @@ if __name__ == "__main__":
     test_save_and_load_store_roundtrip()
     test_merge_items_dedups_by_link_and_skips_unchanged()
     test_merge_items_buckets_by_own_pubdate_not_fixed_window()
-    print("ALL TESTS PASSED (Task 4)")
+    test_render_infomax_day_section_html_newest_first()
+    test_render_infomax_day_section_html_empty_items()
+    print("ALL TESTS PASSED (Task 5)")
