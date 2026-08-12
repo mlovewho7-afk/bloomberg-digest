@@ -65,3 +65,28 @@ def stale_pubdate_warning(items: list[dict], now_kst: datetime) -> str | None:
             f"{drift_hours:.1f}시간 차이남 — pubDate가 KST가 아닐 수 있음"
         )
     return None
+
+
+def load_store() -> dict:
+    if STORE_PATH.exists():
+        return json.loads(STORE_PATH.read_text(encoding="utf-8"))
+    return {}
+
+
+def save_store(store: dict) -> None:
+    STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    STORE_PATH.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def merge_items(store: dict, items: list[dict]) -> dict[str, int]:
+    """items를 각자의 pubdate_kst 날짜로 버킷팅해 store에 링크 기준으로 병합한다.
+    digest.py의 day_store 병합과 동일한 원칙(기존 항목 보존, 링크 기준 dedup)이되,
+    RSS에는 고정 시간창이 없으므로 각 item 자신의 날짜로 버킷을 나눈다."""
+    added_by_date: dict[str, int] = {}
+    for item in items:
+        date_label = item["pubdate_kst"].date().isoformat()
+        day_store = store.setdefault(date_label, {})
+        if item["link"] not in day_store:
+            day_store[item["link"]] = {**item, "pubdate_kst": item["pubdate_kst"].isoformat()}
+            added_by_date[date_label] = added_by_date.get(date_label, 0) + 1
+    return added_by_date

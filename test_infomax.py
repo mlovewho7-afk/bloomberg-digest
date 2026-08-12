@@ -1,7 +1,9 @@
 """infomax.py를 검증한다. .venv/bin/python test_infomax.py 로 직접 실행."""
+import tempfile
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-from infomax import KST, fetch_rss, parse_rss_xml, stale_pubdate_warning
+from infomax import KST, fetch_rss, load_store, merge_items, parse_rss_xml, save_store, stale_pubdate_warning
 
 SAMPLE_XML = """<?xml version="1.0" encoding="utf-8" ?>
 <rss version="2.0"><channel>
@@ -62,10 +64,55 @@ def test_stale_pubdate_warning_none_when_empty():
     print("test_stale_pubdate_warning_none_when_empty: OK")
 
 
+def test_load_store_returns_empty_dict_when_file_absent():
+    with tempfile.TemporaryDirectory() as d:
+        import infomax
+        infomax.STORE_PATH = Path(d) / "infomax_items.json"
+        assert load_store() == {}
+    print("test_load_store_returns_empty_dict_when_file_absent: OK")
+
+
+def test_save_and_load_store_roundtrip():
+    with tempfile.TemporaryDirectory() as d:
+        import infomax
+        infomax.STORE_PATH = Path(d) / "infomax_items.json"
+        save_store({"2026-08-12": {"https://a": {"title": "a"}}})
+        assert load_store() == {"2026-08-12": {"https://a": {"title": "a"}}}
+    print("test_save_and_load_store_roundtrip: OK")
+
+
+def test_merge_items_dedups_by_link_and_skips_unchanged():
+    store = {}
+    item = {"title": "a", "link": "https://a", "pubdate_kst": datetime(2026, 8, 12, 9, 0, tzinfo=KST)}
+    added_first = merge_items(store, [item])
+    added_second = merge_items(store, [item])
+    assert added_first == {"2026-08-12": 1}
+    assert added_second == {}, "이미 있는 링크는 다시 추가되면 안 됨"
+    assert store["2026-08-12"]["https://a"]["title"] == "a"
+    print("test_merge_items_dedups_by_link_and_skips_unchanged: OK")
+
+
+def test_merge_items_buckets_by_own_pubdate_not_fixed_window():
+    store = {}
+    items = [
+        {"title": "a", "link": "https://a", "pubdate_kst": datetime(2026, 8, 12, 9, 0, tzinfo=KST)},
+        {"title": "b", "link": "https://b", "pubdate_kst": datetime(2026, 8, 11, 23, 0, tzinfo=KST)},
+    ]
+    added = merge_items(store, items)
+    assert added == {"2026-08-12": 1, "2026-08-11": 1}
+    assert "https://a" in store["2026-08-12"]
+    assert "https://b" in store["2026-08-11"]
+    print("test_merge_items_buckets_by_own_pubdate_not_fixed_window: OK")
+
+
 if __name__ == "__main__":
     test_parse_rss_xml_unescapes_double_encoded_entities()
     test_parse_rss_xml_empty_channel_returns_empty_list()
     test_stale_pubdate_warning_none_when_recent()
     test_stale_pubdate_warning_set_when_drift_over_2h()
     test_stale_pubdate_warning_none_when_empty()
-    print("ALL TESTS PASSED (Task 3)")
+    test_load_store_returns_empty_dict_when_file_absent()
+    test_save_and_load_store_roundtrip()
+    test_merge_items_dedups_by_link_and_skips_unchanged()
+    test_merge_items_buckets_by_own_pubdate_not_fixed_window()
+    print("ALL TESTS PASSED (Task 4)")
