@@ -259,7 +259,13 @@ def update_homepage(date_label: str, items: list[dict]) -> None:
     day_marker = f'<section><h2>{date_label}</h2>'
     if day_marker in html:
         start = html.find(day_marker)
-        end = html.find("</section>", start) + len("</section>")
+        close_idx = html.find("</section>", start)
+        if close_idx == -1:
+            raise RuntimeError(
+                f"{source_desc}에서 {date_label} 섹션의 닫는 </section> 태그를 찾을 수 없음 — "
+                "파일이 손상되었을 수 있으니 수동으로 확인할 것"
+            )
+        end = close_idx + len("</section>")
         html = html[:start] + new_section + html[end:]
     else:
         insert_at = existing_start + len(marker)

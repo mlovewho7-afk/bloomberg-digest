@@ -96,9 +96,10 @@ def render_infomax_day_section_html(date_label: str, items: list[dict]) -> str:
     rows = []
     for it in reversed(items):  # 최신 기사가 맨 위(블룸버그와 동일 관례)
         stamp = it["pubdate_kst"].strftime("%m-%d %H:%M")
+        title_html = html.escape(it["title"])
         rows.append(
             f'<li><span class="stamp">{stamp}</span>'
-            f'<a href="{it["link"]}" target="_blank" rel="noopener">{it["title"]}</a></li>'
+            f'<a href="{it["link"]}" target="_blank" rel="noopener">{title_html}</a></li>'
         )
     return f'<section class="infomaxSection"><h2>{date_label}</h2><ul>' + "\n".join(rows) + "</ul></section>"
 
@@ -130,7 +131,13 @@ def update_infomax_pane(date_label: str, items: list[dict]) -> None:
     day_marker = f'<section class="infomaxSection"><h2>{date_label}</h2>'
     if day_marker in html_text:
         start = html_text.find(day_marker)
-        end = html_text.find("</section>", start) + len("</section>")
+        close_idx = html_text.find("</section>", start)
+        if close_idx == -1:
+            raise RuntimeError(
+                f"{source_desc}에서 {date_label} 섹션의 닫는 </section> 태그를 찾을 수 없음 — "
+                "파일이 손상되었을 수 있으니 수동으로 확인할 것"
+            )
+        end = close_idx + len("</section>")
         html_text = html_text[:start] + new_section + html_text[end:]
     else:
         insert_at = existing_start + len(marker)
@@ -172,10 +179,8 @@ def main() -> None:
         print("[infomax] 신규 항목 없음 — 종료")
         return
 
-    save_store(store)
-
     with homepage_lock():
-        for date_label in added_by_date:
+        for date_label in sorted(added_by_date):  # 날짜 오름차순 처리 → 최신 날짜가 맨 마지막에 삽입돼 맨 위에 남음
             day_items = [
                 {**v, "pubdate_kst": datetime.fromisoformat(v["pubdate_kst"])}
                 for v in store[date_label].values()
@@ -183,6 +188,11 @@ def main() -> None:
             day_items.sort(key=lambda x: x["pubdate_kst"])
             update_infomax_pane(date_label, day_items)
         push_homepage(now_kst.date().isoformat())
+
+    # 홈페이지 갱신+push가 모두 성공한 뒤에만 store를 디스크에 반영한다 — 도중에 예외가
+    # 나면(Finding 4) store는 이전 상태로 남아, 다음 실행이 같은 RSS 항목을 다시 병합해
+    # 재시도한다(조용한 영구 누락 대신 자연스러운 재시도).
+    save_store(store)
     print("[infomax] 완료")
 
 

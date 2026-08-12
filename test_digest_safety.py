@@ -82,9 +82,36 @@ def test_update_homepage_replaces_same_day_section_not_duplicates():
     print("test_update_homepage_replaces_same_day_section_not_duplicates: OK")
 
 
+def test_update_homepage_raises_when_closing_section_tag_missing_and_does_not_write():
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        digest.ROOT = root
+        (root / "index_template.html").write_text(
+            "<html><body><!-- SECTIONS --></body></html>", encoding="utf-8"
+        )
+        # 대상 날짜의 day_marker는 있지만 </section>이 없는(파일이 중간에 잘린) 상태를 만든다
+        broken = (
+            '<html><body><!-- SECTIONS -->\n'
+            '<section><h2>2026-08-12</h2><ul><li>잘림'
+        )
+        (root / "index.html").write_text(broken, encoding="utf-8")
+
+        raised = False
+        try:
+            digest.update_homepage("2026-08-12", _sample_items())
+        except RuntimeError:
+            raised = True
+
+        assert raised, "닫는 </section> 태그가 없으면 RuntimeError가 발생해야 함(조용한 손상 금지)"
+        assert (root / "index.html").read_text(encoding="utf-8") == broken, \
+            "예외 발생 시 파일이 변경되면 안 됨"
+    print("test_update_homepage_raises_when_closing_section_tag_missing_and_does_not_write: OK")
+
+
 if __name__ == "__main__":
     test_update_homepage_raises_when_marker_missing_and_does_not_write()
     test_update_homepage_bootstraps_from_template_when_file_absent()
     test_update_homepage_raises_when_template_itself_lacks_marker()
     test_update_homepage_replaces_same_day_section_not_duplicates()
+    test_update_homepage_raises_when_closing_section_tag_missing_and_does_not_write()
     print("ALL TESTS PASSED")

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bloomberg 기사 요약</title>
+<title>Bloomberg / 연합인포맥스 기사 요약</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -40,7 +40,25 @@
   a { color: #e6e6e6; text-decoration: none; flex: 1 1 auto; }
   a:hover { text-decoration: underline; color: #8ab4f8; }
 
-  #topBar {
+  #tabBar {
+    display: flex;
+    gap: 8px;
+    padding-top: 4px;
+    margin-bottom: 12px;
+  }
+  .tabBtn {
+    background: #12161f;
+    border: 1px solid #2a2f3a;
+    color: #8ab4f8;
+    font-size: 0.9rem;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .tabBtn.active { background: #8ab4f8; color: #0b0e14; border-color: #8ab4f8; }
+
+  #topBar, #infomaxTopBar {
     position: sticky;
     top: 0;
     background: #0b0e14;
@@ -48,7 +66,7 @@
     margin-bottom: 4px;
     z-index: 10;
   }
-  #searchBox {
+  #searchBox, #infomaxSearchBox {
     width: 100%;
     background: #12161f;
     border: 1px solid #2a2f3a;
@@ -58,7 +76,7 @@
     border-radius: 6px;
     font-family: inherit;
   }
-  #searchBox:focus { outline: none; border-color: #8ab4f8; }
+  #searchBox:focus, #infomaxSearchBox:focus { outline: none; border-color: #8ab4f8; }
   #topTags {
     display: flex;
     flex-wrap: wrap;
