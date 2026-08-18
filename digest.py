@@ -21,6 +21,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
 from playwright.sync_api import sync_playwright
+from homepage_io import homepage_lock, write_atomic
 
 KST = timezone(timedelta(hours=9))
 ROOT = Path(__file__).parent
@@ -233,37 +234,52 @@ def render_day_section_html(date_label: str, items: list[dict]) -> str:
 
 def update_homepage(date_label: str, items: list[dict]) -> None:
     index_path = ROOT / "index.html"
-    template = (ROOT / "index_template.html").read_text(encoding="utf-8")
     new_section = render_day_section_html(date_label, items)
+    marker = "<!-- SECTIONS -->"
 
     if index_path.exists():
         html = index_path.read_text(encoding="utf-8")
-        marker = "<!-- SECTIONS -->"
-        existing_start = html.find(marker)
-        if existing_start == -1:
-            html = template
-            existing_start = html.find(marker)
-        # 같은 날짜 섹션이 이미 있으면 통째로 교체(재실행 시 중복 방지), 없으면 맨 위에 추가
-        day_marker = f'<section><h2>{date_label}</h2>'
-        if day_marker in html:
-            start = html.find(day_marker)
-            end = html.find("</section>", start) + len("</section>")
-            html = html[:start] + new_section + html[end:]
-        else:
-            insert_at = existing_start + len(marker)
-            html = html[:insert_at] + "\n" + new_section + html[insert_at:]
+        source_desc = "index.html"
     else:
-        html = template.replace("<!-- SECTIONS -->", "<!-- SECTIONS -->\n" + new_section)
+        html = (ROOT / "index_template.html").read_text(encoding="utf-8")
+        source_desc = "index_template.html"
 
-    index_path.write_text(html, encoding="utf-8")
+    # 파일이 있든 없든(템플릿 부트스트랩이든) 마커 확인은 동일하게 적용한다 — 이전
+    # 버전은 이 체크를 "파일이 이미 존재하는" 분기에만 걸어서, 템플릿 자체에 마커가
+    # 없는 경우 template.replace()가 조용히 no-op으로 실패하는 구멍이 있었다
+    # (2026-08-12 plan review에서 critical로 지적됨).
+    existing_start = html.find(marker)
+    if existing_start == -1:
+        raise RuntimeError(
+            f"{source_desc}에서 <!-- SECTIONS --> 마커를 찾을 수 없음 — 파일이 손상되었을 "
+            "수 있으니 수동으로 확인할 것(템플릿으로 자동 대체하지 않음)"
+        )
+
+    # 같은 날짜 섹션이 이미 있으면 통째로 교체(재실행 시 중복 방지), 없으면 맨 위에 추가
+    day_marker = f'<section><h2>{date_label}</h2>'
+    if day_marker in html:
+        start = html.find(day_marker)
+        close_idx = html.find("</section>", start)
+        if close_idx == -1:
+            raise RuntimeError(
+                f"{source_desc}에서 {date_label} 섹션의 닫는 </section> 태그를 찾을 수 없음 — "
+                "파일이 손상되었을 수 있으니 수동으로 확인할 것"
+            )
+        end = close_idx + len("</section>")
+        html = html[:start] + new_section + html[end:]
+    else:
+        insert_at = existing_start + len(marker)
+        html = html[:insert_at] + "\n" + new_section + html[insert_at:]
+
+    write_atomic(index_path, html)
 
 
 def push_homepage(date_label: str) -> None:
     def run(cmd):
-        subprocess.run(cmd, cwd=ROOT, check=True)
+        subprocess.run(cmd, cwd=ROOT, check=True, timeout=60)
 
     run(["git", "add", "index.html"])
-    result = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT)
+    result = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT, timeout=60)
     if result.returncode == 0:
         print("[digest] 홈페이지 변경 없음 — 커밋 생략")
         return
@@ -322,8 +338,9 @@ def main() -> None:
     obsidian_path = save_to_obsidian(date_label, note)
     print(f"[digest] 옵시디언 저장: {obsidian_path}")
 
-    update_homepage(date_label, all_items)
-    push_homepage(date_label)
+    with homepage_lock():
+        update_homepage(date_label, all_items)
+        push_homepage(date_label)
     print("[digest] 완료")
 
 

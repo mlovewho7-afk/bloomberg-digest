@@ -1,0 +1,200 @@
+"""연합인포맥스 채권/외환 RSS(https://news.einfomax.co.kr/rss/S1N16.xml)를 수집해
+날짜별로 누적하고 홈페이지(index.html)의 인포맥스 탭에 반영한다.
+
+블룸버그(digest.py)와 달리 이미 한글이라 번역이 필요 없고, 정적 XML이라 Playwright나
+캡차 대응이 필요 없다. 이 차이 때문에 별도 스크립트로 분리했다.
+
+자동 스케줄 없음 — 사용자가 "인포맥스 업데이트해줘"라고 할 때만 수동 실행한다.
+"""
+import html
+import json
+import subprocess
+import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import requests
+
+from homepage_io import homepage_lock, write_atomic
+
+KST = timezone(timedelta(hours=9))
+ROOT = Path(__file__).parent
+RSS_URL = "https://news.einfomax.co.kr/rss/S1N16.xml"
+STORE_PATH = ROOT / "data" / "infomax_items.json"
+PUBDATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+def parse_rss_xml(xml_bytes: bytes) -> list[dict]:
+    root = ET.fromstring(xml_bytes)
+    items = []
+    for item_el in root.findall("./channel/item"):
+        title_el = item_el.find("title")
+        link_el = item_el.find("link")
+        pubdate_el = item_el.find("pubDate")
+        if title_el is None or link_el is None or pubdate_el is None:
+            continue
+        # ElementTree가 파싱 시 1차 언이스케이프(&amp;quot;->&quot;)를 하므로,
+        # html.unescape()로 한 번 더 풀어야 &quot; 같은 리터럴이 안 남는다.
+        title = html.unescape((title_el.text or "").strip())
+        link = (link_el.text or "").strip()
+        pubdate_kst = datetime.strptime(
+            (pubdate_el.text or "").strip(), PUBDATE_FORMAT
+        ).replace(tzinfo=KST)
+        items.append({"title": title, "link": link, "pubdate_kst": pubdate_kst})
+    return items
+
+
+def fetch_rss(url: str) -> list[dict]:
+    resp = requests.get(url, timeout=15)
+    resp.raise_for_status()
+    return parse_rss_xml(resp.content)
+
+
+def stale_pubdate_warning(items: list[dict], now_kst: datetime) -> str | None:
+    """pubDate가 실제로 KST인지는 검증되지 않은 가정이다(spec review에서 지적됨).
+    매 실행마다(최초 실행에 한정하지 않음) 최신 항목과 현재 시각의 차이가 2시간을 넘으면
+    그 가정이 깨졌을 수 있다고 경고한다 — 매번 확인해도 비용이 거의 없고, 인포맥스 쪽
+    RSS 형식이 나중에 바뀌는 경우까지 계속 감시할 수 있다."""
+    if not items:
+        return None
+    newest = max(item["pubdate_kst"] for item in items)
+    drift_hours = (now_kst - newest).total_seconds() / 3600
+    if abs(drift_hours) > 2:
+        return (
+            f"경고: 최신 기사 시각({newest})이 현재 시각({now_kst})과 "
+            f"{drift_hours:.1f}시간 차이남 — pubDate가 KST가 아닐 수 있음"
+        )
+    return None
+
+
+def load_store() -> dict:
+    if STORE_PATH.exists():
+        return json.loads(STORE_PATH.read_text(encoding="utf-8"))
+    return {}
+
+
+def save_store(store: dict) -> None:
+    STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    STORE_PATH.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def merge_items(store: dict, items: list[dict]) -> dict[str, int]:
+    """items를 각자의 pubdate_kst 날짜로 버킷팅해 store에 링크 기준으로 병합한다.
+    digest.py의 day_store 병합과 동일한 원칙(기존 항목 보존, 링크 기준 dedup)이되,
+    RSS에는 고정 시간창이 없으므로 각 item 자신의 날짜로 버킷을 나눈다."""
+    added_by_date: dict[str, int] = {}
+    for item in items:
+        date_label = item["pubdate_kst"].date().isoformat()
+        day_store = store.setdefault(date_label, {})
+        if item["link"] not in day_store:
+            day_store[item["link"]] = {**item, "pubdate_kst": item["pubdate_kst"].isoformat()}
+            added_by_date[date_label] = added_by_date.get(date_label, 0) + 1
+    return added_by_date
+
+
+def render_infomax_day_section_html(date_label: str, items: list[dict]) -> str:
+    rows = []
+    for it in reversed(items):  # 최신 기사가 맨 위(블룸버그와 동일 관례)
+        stamp = it["pubdate_kst"].strftime("%m-%d %H:%M")
+        title_html = html.escape(it["title"])
+        rows.append(
+            f'<li><span class="stamp">{stamp}</span>'
+            f'<a href="{it["link"]}" target="_blank" rel="noopener">{title_html}</a></li>'
+        )
+    return f'<section class="infomaxSection"><h2>{date_label}</h2><ul>' + "\n".join(rows) + "</ul></section>"
+
+
+def update_infomax_pane(date_label: str, items: list[dict]) -> None:
+    index_path = ROOT / "index.html"
+    new_section = render_infomax_day_section_html(date_label, items)
+    marker = "<!-- INFOMAX_SECTIONS -->"
+
+    if index_path.exists():
+        html_text = index_path.read_text(encoding="utf-8")
+        source_desc = "index.html"
+    else:
+        html_text = (ROOT / "index_template.html").read_text(encoding="utf-8")
+        source_desc = "index_template.html"
+
+    # 파일이 있든 없든(템플릿 부트스트랩이든) 마커 확인은 동일하게 적용한다 — 이전
+    # 버전은 이 체크를 "파일이 이미 존재하는" 분기에만 걸어서, 템플릿 자체에 마커가
+    # 없으면 existing_start=-1인 채로 insert_at 계산에 그대로 쓰여 파일 임의
+    # 위치(바이트 오프셋 음수+len(marker))에 조용히 잘못 삽입되는 실제 버그가 있었다
+    # (2026-08-12 plan review에서 critical로 지적됨).
+    existing_start = html_text.find(marker)
+    if existing_start == -1:
+        raise RuntimeError(
+            f"{source_desc}에서 <!-- INFOMAX_SECTIONS --> 마커를 찾을 수 없음 — 파일이 "
+            "손상됐거나 마이그레이션이 안 된 상태일 수 있으니 수동으로 확인할 것"
+        )
+
+    day_marker = f'<section class="infomaxSection"><h2>{date_label}</h2>'
+    if day_marker in html_text:
+        start = html_text.find(day_marker)
+        close_idx = html_text.find("</section>", start)
+        if close_idx == -1:
+            raise RuntimeError(
+                f"{source_desc}에서 {date_label} 섹션의 닫는 </section> 태그를 찾을 수 없음 — "
+                "파일이 손상되었을 수 있으니 수동으로 확인할 것"
+            )
+        end = close_idx + len("</section>")
+        html_text = html_text[:start] + new_section + html_text[end:]
+    else:
+        insert_at = existing_start + len(marker)
+        html_text = html_text[:insert_at] + "\n" + new_section + html_text[insert_at:]
+
+    write_atomic(index_path, html_text)
+
+
+def push_homepage(date_label: str) -> None:
+    def run(cmd):
+        subprocess.run(cmd, cwd=ROOT, check=True, timeout=60)
+
+    run(["git", "add", "index.html"])
+    result = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT, timeout=60)
+    if result.returncode == 0:
+        print("[infomax] 홈페이지 변경 없음 — 커밋 생략")
+        return
+    run(["git", "commit", "-m", f"update: {date_label} 인포맥스 기사"])
+    run(["git", "push"])
+
+
+def main() -> None:
+    now_kst = datetime.now(KST)
+    print(f"[infomax] RSS 수집 시작: {RSS_URL}")
+    items = fetch_rss(RSS_URL)
+    oldest = min((i["pubdate_kst"] for i in items), default=None)
+    print(f"[infomax] RSS {len(items)}건 수신, 가장 과거 pubDate: {oldest}")
+
+    warning = stale_pubdate_warning(items, now_kst)
+    if warning:
+        print(f"[infomax] {warning}")
+
+    store = load_store()
+    added_by_date = merge_items(store, items)
+    total_added = sum(added_by_date.values())
+    print(f"[infomax] 신규 {total_added}건 추가 ({added_by_date})")
+
+    if not added_by_date:
+        print("[infomax] 신규 항목 없음 — 종료")
+        return
+
+    with homepage_lock():
+        for date_label in sorted(added_by_date):  # 날짜 오름차순 처리 → 최신 날짜가 맨 마지막에 삽입돼 맨 위에 남음
+            day_items = [
+                {**v, "pubdate_kst": datetime.fromisoformat(v["pubdate_kst"])}
+                for v in store[date_label].values()
+            ]
+            day_items.sort(key=lambda x: x["pubdate_kst"])
+            update_infomax_pane(date_label, day_items)
+        push_homepage(now_kst.date().isoformat())
+
+    # 홈페이지 갱신+push가 모두 성공한 뒤에만 store를 디스크에 반영한다 — 도중에 예외가
+    # 나면(Finding 4) store는 이전 상태로 남아, 다음 실행이 같은 RSS 항목을 다시 병합해
+    # 재시도한다(조용한 영구 누락 대신 자연스러운 재시도).
+    save_store(store)
+    print("[infomax] 완료")
+
+
+if __name__ == "__main__":
+    main()
