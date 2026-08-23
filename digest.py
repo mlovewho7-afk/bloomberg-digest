@@ -196,10 +196,17 @@ def collect_window(window_start_kst: datetime, window_end_kst: datetime) -> list
 
 
 def translate_items(items: list[dict]) -> None:
+    """deep_translator(비공식 구글 번역)는 요청이 몰리면 예외를 던지지 않고 구글의
+    500 에러 페이지 텍스트("Error 500 ... That's an error...")를 번역 결과인 것처럼
+    그대로 돌려줄 때가 있다(2026-08-24 실제로 겪음 — 29건을 연속 번역하다 전부 오염됨).
+    그래서 결과에 그 에러 페이지 특징 문구가 있으면 번역 실패로 간주하고 원문을 쓴다."""
     translator = GoogleTranslator(source="auto", target="ko")
     for item in items:
         try:
-            item["title_ko"] = translator.translate(item["title"])
+            translated = translator.translate(item["title"])
+            if translated is None or "That's an error" in translated or "Error 500" in translated:
+                raise ValueError(f"구글 번역 에러 페이지 응답: {translated!r}")
+            item["title_ko"] = translated
         except Exception as e:
             print(f"[digest] 번역 실패, 원문 유지: {e!r}")
             item["title_ko"] = item["title"]
@@ -324,7 +331,9 @@ def main() -> None:
         print("[digest] 누적 항목 없음 — 종료")
         return
 
-    to_translate = [v for v in day_store.values() if "title_ko" not in v]
+    # title_ko가 원문과 똑같으면 번역이 아니라 실패 폴백이 저장된 것 — 다음 실행 때
+    # 다시 시도하도록 "번역 안 됨"으로 취급한다(2026-08-24, 구글 번역 장애로 발견).
+    to_translate = [v for v in day_store.values() if v.get("title_ko", v["title"]) == v["title"]]
     if to_translate:
         translate_items(to_translate)
 
