@@ -14,12 +14,14 @@ headless로는 PerimeterX(봇 차단)에 막히지만 headed(화면 있는) 크�
 import json
 import re
 import subprocess
+import time
+import urllib.error
 import urllib.parse
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from bs4 import BeautifulSoup
-from deep_translator import GoogleTranslator
 from playwright.sync_api import sync_playwright
 from homepage_io import homepage_lock, write_atomic
 
@@ -195,18 +197,33 @@ def collect_window(window_start_kst: datetime, window_end_kst: datetime) -> list
     return filtered
 
 
+TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single"
+
+
+def translate_to_ko(text: str) -> str:
+    """deep_translator(구글 번역 HTML 페이지를 긁는 방식, translate.google.com/m)가
+    2026-08-24부터 500 에러 페이지를 계속 반환해 폐기함 — 대신 구글 번역이 실제로
+    쓰는 JSON API(translate_a/single)를 직접 호출한다(직접 확인, 안정적으로 동작).
+    429(요청 몰림)면 잠깐 쉬고 한 번 더 시도한다."""
+    params = {"client": "gtx", "sl": "auto", "tl": "ko", "dt": "t", "q": text}
+    url = TRANSLATE_URL + "?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+            return "".join(seg[0] for seg in data[0])
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt == 0:
+                time.sleep(3)
+                continue
+            raise
+
+
 def translate_items(items: list[dict]) -> None:
-    """deep_translator(비공식 구글 번역)는 요청이 몰리면 예외를 던지지 않고 구글의
-    500 에러 페이지 텍스트("Error 500 ... That's an error...")를 번역 결과인 것처럼
-    그대로 돌려줄 때가 있다(2026-08-24 실제로 겪음 — 29건을 연속 번역하다 전부 오염됨).
-    그래서 결과에 그 에러 페이지 특징 문구가 있으면 번역 실패로 간주하고 원문을 쓴다."""
-    translator = GoogleTranslator(source="auto", target="ko")
     for item in items:
         try:
-            translated = translator.translate(item["title"])
-            if translated is None or "That's an error" in translated or "Error 500" in translated:
-                raise ValueError(f"구글 번역 에러 페이지 응답: {translated!r}")
-            item["title_ko"] = translated
+            item["title_ko"] = translate_to_ko(item["title"])
         except Exception as e:
             print(f"[digest] 번역 실패, 원문 유지: {e!r}")
             item["title_ko"] = item["title"]
