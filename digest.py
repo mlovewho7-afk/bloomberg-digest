@@ -221,7 +221,9 @@ def translate_to_ko(text: str) -> str:
 
 
 def translate_items(items: list[dict]) -> None:
-    for item in items:
+    for i, item in enumerate(items):
+        if i > 0:
+            time.sleep(0.4)  # 연달아 너무 빠르면 429가 계속 재발함(2026-08-26 확인)
         try:
             item["title_ko"] = translate_to_ko(item["title"])
         except Exception as e:
