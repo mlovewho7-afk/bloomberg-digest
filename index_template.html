@@ -104,6 +104,14 @@
     font-family: inherit;
   }
   #resetFilter:hover { border-color: #8ab4f8; }
+
+  /* 구글 번역 위젯 — 기본 배너/스타일 숨기고 우리 다크 테마와 안 어울리는 부분 제거 */
+  .goog-te-banner-frame { display: none !important; }
+  body { top: 0 !important; }
+  #google_translate_element { font-size: 0.75rem; opacity: 0.6; margin-top: 8px; }
+  .goog-te-gadget { color: transparent !important; font-size: 0; }
+  .goog-te-gadget .goog-te-combo { color: #8ab4f8; background: #12161f; border: 1px solid #2a2f3a;
+    border-radius: 4px; padding: 3px; font-size: 0.75rem; }
 </style>
 </head>
 <body>
@@ -121,6 +129,7 @@
     <span id="filterStatus">태그를 클릭하거나 검색하면 걸러 볼 수 있습니다.</span>
     <button id="resetFilter" type="button">전체 보기</button>
   </div>
+  <div id="google_translate_element"></div>
 </div>
 <!-- SECTIONS -->
 </div>
@@ -237,6 +246,22 @@ function applyInfomaxFilter() {
     section.style.display = visibleCount > 0 ? '' : 'none';
   });
 }
+
+// 영문 기사 제목을 우리 스크립트가 매번 API로 미리 번역하는 대신, 방문할 때
+// 브라우저에서 구글 번역 위젯이 자동으로 한글로 바꿔주게 한다(2026-08-26, 서버 쪽
+// 번역 API 요청 제한 문제로 사용자 요청) — 쿠키로 기본 대상 언어를 한국어로 지정해
+// 페이지 로드 시 자동 번역되게 한다. 이미 한글인 연합인포맥스 탭 내용은 구글 번역이
+// 알아서 건드리지 않는다.
+if (!document.cookie.includes('googtrans')) {
+  document.cookie = 'googtrans=/en/ko; path=/';
+}
+function googleTranslateElementInit() {
+  new google.translate.TranslateElement(
+    { pageLanguage: 'en', includedLanguages: 'ko', autoDisplay: false },
+    'google_translate_element'
+  );
+}
 </script>
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>
