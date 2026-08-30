@@ -21,7 +21,7 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 from playwright.sync_api import sync_playwright
 from homepage_io import homepage_lock, write_atomic
 
@@ -297,7 +297,34 @@ def update_homepage(date_label: str, items: list[dict]) -> None:
         insert_at = existing_start + len(marker)
         html = html[:insert_at] + "\n" + new_section + html[insert_at:]
 
-    write_atomic(index_path, html)
+    write_atomic(index_path, _sort_sections_desc(html))
+
+
+def _sort_sections_desc(html: str) -> str:
+    """`<!-- SECTIONS -->` 바로 아래 섹션들을 날짜(h2) 내림차순으로 재정렬한다. 하루치씩
+    순서대로 넣으면 필요 없지만, 여러 날짜를 한 번에 채워 넣을 때(백필) 삽입 순서에 따라
+    섹션이 뒤죽박죽될 수 있다(2026-08-31 실제로 8/30이 8/31 위에 오는 문제 발생) — 그래서
+    매번 무조건 다시 정렬해 삽입 순서에 의존하지 않게 한다."""
+    soup = BeautifulSoup(html, "html.parser")
+    pane = soup.find("div", id="bloombergPane")
+    if pane is None:
+        return html
+    sections = pane.find_all("section", recursive=False)
+    if not sections:
+        return html
+    sections_sorted = sorted(sections, key=lambda s: s.find("h2").get_text(), reverse=True)
+    if [s.find("h2").get_text() for s in sections] == [s.find("h2").get_text() for s in sections_sorted]:
+        return html  # 이미 정렬돼 있으면 그대로(불필요한 diff 방지)
+    marker_node = next(
+        (n for n in pane.contents if isinstance(n, Comment) and n.strip() == "SECTIONS"), None
+    )
+    if marker_node is None:
+        return html
+    for s in sections:
+        s.extract()
+    for s in reversed(sections_sorted):
+        marker_node.insert_after(s)
+    return str(soup)
 
 
 def push_homepage(date_label: str) -> None:
